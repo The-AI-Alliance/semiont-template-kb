@@ -5,8 +5,8 @@
 #   docker compose -f .semiont/compose/backend.yml up
 #   docker compose -f .semiont/compose/backend.yml exec ollama ollama pull nomic-embed-text
 #
-# Admin credentials default to admin@example.com / password.
-# Override with ADMIN_EMAIL and ADMIN_PASSWORD env vars.
+# To create an admin user, set ADMIN_EMAIL and ADMIN_PASSWORD env vars.
+# No user is created if these are omitted.
 
 services:
   neo4j:
@@ -72,8 +72,8 @@ services:
       NEO4J_HOST: neo4j
       QDRANT_HOST: qdrant
       OLLAMA_HOST: ollama
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       neo4j:
         condition: service_healthy

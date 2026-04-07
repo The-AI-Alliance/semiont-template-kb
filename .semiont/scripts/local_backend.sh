@@ -187,8 +187,6 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-echo "Pulling nomic-embed-text model (first run may take a minute)..."
-"${RT}" exec "${OLLAMA_NAME}" ollama pull nomic-embed-text
 echo "Ollama running on http://localhost:11434"
 
 # --- PostgreSQL ---
@@ -240,6 +238,7 @@ if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
 fi
 
 $RT run --publish 4000:4000 \
+  --memory 8G \
   --volume "$(pwd)":/kb \
   --env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
   --env POSTGRES_HOST="$HOST_ADDR" \
