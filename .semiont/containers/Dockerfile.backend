@@ -19,7 +19,8 @@ RUN npm config set registry $NPM_REGISTRY && \
       --prefix /home/semiont/.local/share/semiont && \
     npm cache clean --force
 
-COPY --chown=semiont:nodejs .semiont/containers/semiontconfig/anthropic.toml /home/semiont/.semiontconfig
+ARG SEMIONT_CONFIG=.semiont/containers/semiontconfig/ollama-gemma.toml
+COPY --chown=semiont:nodejs ${SEMIONT_CONFIG} /home/semiont/.semiontconfig
 
 ENV NODE_ENV=production
 ENV NODE_OPTIONS=--max-old-space-size=6144

@@ -21,6 +21,9 @@ set -euo pipefail
 #   - Environment variable: ANTHROPIC_API_KEY
 #
 # Options:
+#   --config <name>         Semiontconfig to use (default: ollama-gemma)
+#                           Name maps to .semiont/containers/semiontconfig/<name>.toml
+#   --list-configs          List available semiontconfig files and exit
 #   --no-cache              Force a fresh container build (skip layer cache)
 #   --email <email>         Admin user email (requires --password)
 #   --password <password>   Admin user password (requires --email)
@@ -28,7 +31,7 @@ set -euo pipefail
 #
 # Usage:
 #   .semiont/scripts/local_backend.sh --email admin@example.com --password password
-#   .semiont/scripts/local_backend.sh --no-cache --email admin@example.com --password password
+#   .semiont/scripts/local_backend.sh --config anthropic --email admin@example.com --password password
 #
 # Equivalent without this script (npm required):
 #   npm install -g @semiont/cli neo4j-driver
@@ -38,12 +41,17 @@ cd "$(git rev-parse --show-toplevel)"
 
 # --- Parse arguments ---
 
+CONFIG_NAME="ollama-gemma"
+CONFIG_DIR=".semiont/containers/semiontconfig"
 CACHE_FLAG=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 CLEAN_OLLAMA=false
+LIST_CONFIGS=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --config) CONFIG_NAME="$2"; shift 2 ;;
+    --list-configs) LIST_CONFIGS=true; shift ;;
     --no-cache) CACHE_FLAG="--no-cache"; shift ;;
     --email) ADMIN_EMAIL="$2"; shift 2 ;;
     --password) ADMIN_PASSWORD="$2"; shift 2 ;;
@@ -51,6 +59,26 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
+
+# --- List or validate config ---
+
+if [[ "${LIST_CONFIGS}" == "true" ]]; then
+  echo "Available configs:"
+  for f in "${CONFIG_DIR}"/*.toml; do
+    echo "  $(basename "${f}" .toml)"
+  done
+  exit 0
+fi
+
+CONFIG_FILE="${CONFIG_DIR}/${CONFIG_NAME}.toml"
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "Config not found: ${CONFIG_FILE}" >&2
+  echo "Available configs:"
+  for f in "${CONFIG_DIR}"/*.toml; do
+    echo "  $(basename "${f}" .toml)"
+  done
+  exit 1
+fi
 
 # --- Detect container runtime ---
 
@@ -74,16 +102,17 @@ if [[ "${CLEAN_OLLAMA}" == "true" ]]; then
 fi
 
 NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org}"
+echo "Config: ${CONFIG_NAME}"
 echo "npm registry: $NPM_REGISTRY"
 
 # --- Check required env vars ---
 
-for var in ANTHROPIC_API_KEY; do
-  if [[ -z "${!var:-}" ]]; then
-    echo "Missing required environment variable: $var"
+if grep -q 'ANTHROPIC_API_KEY' "${CONFIG_FILE}"; then
+  if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo "Config '${CONFIG_NAME}' requires ANTHROPIC_API_KEY but it is not set."
     exit 1
   fi
-done
+fi
 
 # --- Resolve host address for container networking ---
 
@@ -224,6 +253,7 @@ echo ""
 echo "Building backend..."
 $RT build $CACHE_FLAG --tag semiont-backend \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
+  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile.backend .
 
 # --- Run backend ---
@@ -237,10 +267,15 @@ if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
   echo "Admin user: $ADMIN_EMAIL"
 fi
 
+ANTHROPIC_ARGS=()
+if grep -q 'ANTHROPIC_API_KEY' "${CONFIG_FILE}"; then
+  ANTHROPIC_ARGS=(--env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY")
+fi
+
 $RT run --publish 4000:4000 \
   --memory 8G \
   --volume "$(pwd)":/kb \
-  --env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+  ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
   --env POSTGRES_HOST="$HOST_ADDR" \
   --env NEO4J_HOST="$HOST_ADDR" \
   --env QDRANT_HOST="${HOST_ADDR}" \

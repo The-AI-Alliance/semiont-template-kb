@@ -7,8 +7,16 @@ A template repository for creating new [Semiont](https://github.com/The-AI-Allia
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
-export ANTHROPIC_API_KEY=<your-api-key>
+
+# Fully local with Ollama (default, no API key needed)
 .semiont/scripts/local_backend.sh --email admin@example.com --password password
+
+# Anthropic cloud inference
+export ANTHROPIC_API_KEY=<your-api-key>
+.semiont/scripts/local_backend.sh --config anthropic --email admin@example.com --password password
+
+# See available configs
+.semiont/scripts/local_backend.sh --list-configs
 ```
 
 In a second terminal:
