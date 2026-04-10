@@ -7,7 +7,11 @@ A template repository for creating new [Semiont](https://github.com/The-AI-Allia
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
+```
 
+Start the backend with one of the available inference configurations:
+
+```bash
 # Fully local with Ollama (default, no API key needed)
 .semiont/scripts/local_backend.sh --email admin@example.com --password password
 
@@ -48,6 +52,15 @@ The `.semiont/` directory contains the infrastructure to run a Semiont backend a
 ```
 
 Add your documents anywhere in the project root. They become resources in the knowledge base when you upload them through the UI or CLI.
+
+## Inference Configuration
+
+Inference configs live in `.semiont/containers/semiontconfig/` and are selected with the `--config` flag. The included configs are:
+
+- `ollama-gemma` (default) — fully local inference via Ollama with Gemma 4 models
+- `anthropic` — cloud inference via the Anthropic API
+
+To create your own, add a `.toml` file to the same directory. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/administration/CONFIGURATION.md) for the full reference.
 
 ## Documentation
 
