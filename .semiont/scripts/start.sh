@@ -9,12 +9,12 @@ set -euo pipefail
 #   3. Starts a Qdrant container (port 6333)
 #   4. Starts an Ollama container (port 11434) for local embeddings
 #   5. Starts a PostgreSQL container (port 5432, database "semiont")
-#   6. Builds the backend container image from .semiont/containers/Dockerfile.backend
+#   6. Builds the backend container image from .semiont/containers/Dockerfile
 #   7. Runs the backend container (port 4000), mounting the current KB directory
 #   8. Creates an admin user if --email and --password are provided
 #
 # The script stays attached and streams backend logs. Press Ctrl+C to stop.
-# To run in the background: .semiont/scripts/local_backend.sh &
+# To run in the background: .semiont/scripts/start.sh &
 #
 # Prerequisites:
 #   - Container runtime (Apple Container, Docker, or Podman)
@@ -30,8 +30,8 @@ set -euo pipefail
 #   --clean-ollama          Remove the Ollama model cache volume and exit
 #
 # Usage:
-#   .semiont/scripts/local_backend.sh --email admin@example.com --password password
-#   .semiont/scripts/local_backend.sh --config anthropic --email admin@example.com --password password
+#   .semiont/scripts/start.sh --email admin@example.com --password password
+#   .semiont/scripts/start.sh --config anthropic --email admin@example.com --password password
 #
 # Equivalent without this script (npm required):
 #   npm install -g @semiont/cli neo4j-driver
@@ -254,7 +254,7 @@ echo "Building backend..."
 $RT build $CACHE_FLAG --tag semiont-backend \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile.backend .
+  --file .semiont/containers/Dockerfile .
 
 # --- Run backend ---
 

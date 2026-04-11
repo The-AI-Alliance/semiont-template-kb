@@ -13,7 +13,7 @@ Start the backend with one of the available inference configurations:
 
 ```bash
 # Fully local with Ollama (default, no API key needed)
-.semiont/scripts/local_backend.sh --email admin@example.com --password password
+.semiont/scripts/start.sh --email admin@example.com --password password
 ```
 
 On first run, the default config (`ollama-gemma`) pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) from Ollama — roughly 24 GB total. This is a one-time download.
@@ -21,12 +21,12 @@ On first run, the default config (`ollama-gemma`) pulls `gemma4:26b` (17 GB), `g
 ```bash
 # Anthropic cloud inference
 export ANTHROPIC_API_KEY=<your-api-key>
-.semiont/scripts/local_backend.sh --config anthropic --email admin@example.com --password password
+.semiont/scripts/start.sh --config anthropic --email admin@example.com --password password
 ```
 
 ```bash
 # See available configs
-.semiont/scripts/local_backend.sh --list-configs
+.semiont/scripts/start.sh --list-configs
 ```
 
 In a second terminal, start the frontend (`container` can be replaced with `docker` or `podman`):

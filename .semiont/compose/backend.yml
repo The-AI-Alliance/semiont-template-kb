@@ -61,7 +61,7 @@ services:
   backend:
     build:
       context: ../..
-      dockerfile: .semiont/containers/Dockerfile.backend
+      dockerfile: .semiont/containers/Dockerfile
     ports:
       - "4000:4000"
     volumes:
