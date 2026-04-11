@@ -63,7 +63,7 @@ Add documents anywhere in the project root. They become resources in the knowled
 └── scripts/                      # Backend startup script
 ```
 
-The Semiont backend writes event streams into `.semiont/events/` and stages them with `git add`. You are responsible for committing, pushing, and managing the rest of the Git lifecycle.
+As you work in the knowledge base, the backend writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The backend container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.
 
 ## Documentation
 
