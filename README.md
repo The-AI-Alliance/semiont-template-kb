@@ -4,9 +4,9 @@ A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance
 
 ## Prerequisites
 
-- [Git](https://git-scm.com/)
 - A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/)
 - An inference provider: [Ollama](https://ollama.com/) for fully local inference, or an [Anthropic](https://www.anthropic.com/) API key for cloud inference. See [Inference Configuration](#inference-configuration) for details.
+- [Git](https://git-scm.com/) — for managing your documents and committing the event streams that the backend stages
 
 No npm or Node.js installation required — everything runs in containers.
 
