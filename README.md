@@ -20,13 +20,11 @@ cd my-kb
 
 This builds and starts the full backend stack: PostgreSQL, Neo4j, Qdrant, Ollama, and the Semiont API server. The script auto-detects your container runtime.
 
-In a second terminal, start the frontend (`container` can be replaced with `docker` or `podman`):
+### Browse this knowledge base
 
-```bash
-container run --publish 3000:3000 -it ghcr.io/the-ai-alliance/semiont-frontend:latest
-```
+Start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser).
 
-Open **http://localhost:3000**. In the Knowledge Bases panel, enter host `localhost`, port `4000`, and the email and password you provided above.
+Open **http://localhost:3000** and in the Knowledge Bases panel enter host `localhost`, port `4000`, and the email and password you provided above.
 
 ## Inference Configuration
 
