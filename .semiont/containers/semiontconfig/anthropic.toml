@@ -8,7 +8,7 @@ environment = "local"
 [environments.local.backend]
 platform = "posix"
 port = 4000
-publicURL = "http://localhost:4000"
+publicURL = "http://${BACKEND_HOST:-localhost}:4000"
 corsOrigin = "*"
 
 [environments.local.graph]
