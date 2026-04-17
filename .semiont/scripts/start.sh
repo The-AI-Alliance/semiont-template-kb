@@ -275,16 +275,34 @@ for i in $(seq 1 20); do
 done
 ok "PostgreSQL on port 5432"
 
-# --- Build backend ---
+# --- Generate worker secret ---
 
-banner "Backend"
+SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET:-$(openssl rand -hex 32)}"
+log "Worker secret: ${DIM}(generated)${RESET}"
+
+# --- Build images ---
+
+banner "Building Images"
+
 log "Building backend image..."
 run_cmd $RT build $CACHE_FLAG --tag semiont-backend \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile .
-
 ok "Backend image built"
+
+log "Building worker image..."
+run_cmd $RT build $CACHE_FLAG --tag semiont-worker \
+  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
+  --file .semiont/containers/Dockerfile.worker .
+ok "Worker image built"
+
+log "Building smelter image..."
+run_cmd $RT build $CACHE_FLAG --tag semiont-smelter \
+  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
+  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
+  --file .semiont/containers/Dockerfile.smelter .
+ok "Smelter image built"
 
 # --- Run backend ---
 
@@ -302,7 +320,12 @@ if grep -q 'ANTHROPIC_API_KEY' "${CONFIG_FILE}"; then
   ANTHROPIC_ARGS=(--env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY")
 fi
 
-run_cmd $RT run --publish 4000:4000 \
+$RT stop semiont-backend 2>/dev/null || true
+sleep 1
+
+run_cmd $RT run -d --rm \
+  --name semiont-backend \
+  --publish 4000:4000 \
   --memory 8G \
   --volume "$(pwd)":/kb \
   ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
@@ -310,5 +333,59 @@ run_cmd $RT run --publish 4000:4000 \
   --env NEO4J_HOST="$HOST_ADDR" \
   --env QDRANT_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
+  --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
   ${ADMIN_ARGS[@]+"${ADMIN_ARGS[@]}"} \
-  -it semiont-backend
+  semiont-backend > /dev/null
+
+log "Waiting for backend health..."
+for i in $(seq 1 120); do
+  if curl -sf http://localhost:4000/api/health > /dev/null 2>&1; then break; fi
+  sleep 1
+done
+ok "Backend healthy"
+
+# --- Run worker pool ---
+
+banner "Starting Worker Pool"
+
+$RT stop semiont-worker 2>/dev/null || true
+sleep 1
+
+run_cmd $RT run -d --rm \
+  --name semiont-worker \
+  --memory 8G \
+  --publish 9090:9090 \
+  --env BACKEND_HOST="${HOST_ADDR}" \
+  --env OLLAMA_HOST="${HOST_ADDR}" \
+  --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
+  ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
+  semiont-worker > /dev/null
+
+ok "Worker pool started (health: http://localhost:9090)"
+
+# --- Run smelter ---
+
+banner "Starting Smelter"
+
+$RT stop semiont-smelter 2>/dev/null || true
+sleep 1
+
+run_cmd $RT run -d --rm \
+  --name semiont-smelter \
+  --memory 4G \
+  --publish 9091:9091 \
+  --env BACKEND_HOST="${HOST_ADDR}" \
+  --env OLLAMA_HOST="${HOST_ADDR}" \
+  --env QDRANT_HOST="${HOST_ADDR}" \
+  --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
+  semiont-smelter > /dev/null
+
+ok "Smelter started (health: http://localhost:9091)"
+
+# --- Tail logs ---
+
+banner "Logs"
+log "Backend: semiont-backend | Worker: semiont-worker | Smelter: semiont-smelter"
+log "Press Ctrl+C to stop"
+
+$RT logs -f semiont-backend semiont-worker semiont-smelter
