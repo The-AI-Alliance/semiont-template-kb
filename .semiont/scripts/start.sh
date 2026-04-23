@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Start a local Semiont backend with all services in containers.
 
+echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh started\033[0m"
+
 cd "$(git rev-parse --show-toplevel)"
 
 # --- Colors & output helpers ---
@@ -141,6 +143,7 @@ log "Host address: ${DIM}${HOST_ADDR}${RESET}"
 NEO4J_NAME="semiont-neo4j"
 banner "Neo4j"
 run_cmd $RT stop "$NEO4J_NAME" 2>/dev/null || true
+run_cmd $RT rm "$NEO4J_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :7687 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
@@ -168,6 +171,7 @@ ok "Neo4j on bolt://localhost:7687 (browser: http://localhost:7474)"
 QDRANT_NAME="semiont-qdrant"
 banner "Qdrant"
 run_cmd $RT stop "$QDRANT_NAME" 2>/dev/null || true
+run_cmd $RT rm "$QDRANT_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :6333 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
@@ -254,6 +258,7 @@ fi
 POSTGRES_NAME="semiont-postgres"
 banner "PostgreSQL"
 run_cmd $RT stop "$POSTGRES_NAME" 2>/dev/null || true
+run_cmd $RT rm "$POSTGRES_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :5432 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
@@ -294,6 +299,7 @@ ok "Backend image built"
 log "Building worker image..."
 run_cmd $RT build $CACHE_FLAG --tag semiont-worker \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
+  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile.worker .
 ok "Worker image built"
 
@@ -321,9 +327,10 @@ if grep -q 'ANTHROPIC_API_KEY' "${CONFIG_FILE}"; then
 fi
 
 $RT stop semiont-backend 2>/dev/null || true
+$RT rm semiont-backend 2>/dev/null || true
 sleep 1
 
-run_cmd $RT run -d --rm \
+run_cmd $RT run -d \
   --name semiont-backend \
   --publish 4000:4000 \
   --memory 8G \
@@ -349,16 +356,20 @@ ok "Backend healthy"
 banner "Starting Worker Pool"
 
 $RT stop semiont-worker 2>/dev/null || true
+$RT rm semiont-worker 2>/dev/null || true
 sleep 1
 
 run_cmd $RT run -d --rm \
   --name semiont-worker \
   --memory 8G \
   --publish 9090:9090 \
+  ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
+  --env NEO4J_HOST="${HOST_ADDR}" \
+  --env QDRANT_HOST="${HOST_ADDR}" \
+  --env POSTGRES_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
-  ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
   semiont-worker > /dev/null
 
 ok "Worker pool started (health: http://localhost:9090)"
@@ -368,15 +379,19 @@ ok "Worker pool started (health: http://localhost:9090)"
 banner "Starting Smelter"
 
 $RT stop semiont-smelter 2>/dev/null || true
+$RT rm semiont-smelter 2>/dev/null || true
 sleep 1
 
 run_cmd $RT run -d --rm \
   --name semiont-smelter \
   --memory 4G \
   --publish 9091:9091 \
+  ${ANTHROPIC_ARGS[@]+"${ANTHROPIC_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
   --env QDRANT_HOST="${HOST_ADDR}" \
+  --env NEO4J_HOST="${HOST_ADDR}" \
+  --env POSTGRES_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
   semiont-smelter > /dev/null
 
@@ -384,8 +399,23 @@ ok "Smelter started (health: http://localhost:9091)"
 
 # --- Tail logs ---
 
+banner "Containers"
+$RT list 2>/dev/null | head -1
+$RT list 2>/dev/null | grep semiont- || true
+
+echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh containers ready\033[0m"
+
 banner "Logs"
 log "Backend: semiont-backend | Worker: semiont-worker | Smelter: semiont-smelter"
 log "Press Ctrl+C to stop"
 
-$RT logs -f semiont-backend semiont-worker semiont-smelter
+sleep 2
+($RT logs --follow semiont-backend 2>/dev/null || true) &
+LOG_PIDS=$!
+($RT logs --follow semiont-worker 2>/dev/null || true) &
+LOG_PIDS="$LOG_PIDS $!"
+($RT logs --follow semiont-smelter 2>/dev/null || true) &
+LOG_PIDS="$LOG_PIDS $!"
+
+trap "kill $LOG_PIDS 2>/dev/null" EXIT
+wait || true

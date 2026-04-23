@@ -35,4 +35,5 @@ CMD semiont provision --service backend --verbose && \
     if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then \
       semiont useradd --email "$ADMIN_EMAIL" --password "$ADMIN_PASSWORD" --admin --upsert; \
     fi && \
+    semiont useradd --email worker@semiont.local --generate-password --upsert && \
     tail -f /home/semiont/.local/state/semiont/*/backend/app.log

@@ -23,4 +23,4 @@ EXPOSE 9090
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:9090/health || exit 1
 
-CMD ["node", "-e", "require('@semiont/jobs/worker-main')"]
+CMD ["node", "/usr/local/lib/node_modules/@semiont/jobs/dist/worker-main.js"]
