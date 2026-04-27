@@ -1,5 +1,10 @@
 # Semiont Template Knowledge Base
 
+[![Lint](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/lint.yml?query=branch%3Amain)
+[![Build](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/build.yml?query=branch%3Amain)
+[![License](https://img.shields.io/github/license/The-AI-Alliance/semiont-template-kb)](https://github.com/The-AI-Alliance/semiont-template-kb/blob/main/LICENSE)
+[![Use this template](https://img.shields.io/badge/use%20this-template-2ea44f?logo=github)](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance)
+
 A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge base. Clone this repo, add your documents, and run the start script to get a fully functional semantic wiki backed by AI-powered annotation, linking, and generation.
 
 ## Prerequisites
