@@ -7,17 +7,17 @@
 
 A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge base. Clone this repo, add your documents, and run the start script to get a fully functional semantic wiki backed by AI-powered annotation, linking, and generation.
 
-## Prerequisites
+## Quick Start
 
-- A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/) — *not needed if you launch the repo in Codespaces*
+### Local
+
+**Prerequisites:**
+
+- A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/)
 - An inference provider: [Ollama](https://ollama.com/) for fully local inference, or an [Anthropic](https://www.anthropic.com/) API key for cloud inference. See [Inference Configuration](#inference-configuration) for details.
 - [Git](https://git-scm.com/) — for managing your documents and committing the event streams that the backend stages
 
 No npm or Node.js installation required — everything runs in containers.
-
-## Quick Start
-
-### Local
 
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
