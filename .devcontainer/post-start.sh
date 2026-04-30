@@ -16,38 +16,77 @@ fi
 set -a
 # shellcheck source=/dev/null
 . "$ENV_FILE"
-ADMIN_EMAIL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["email"])' "$ADMIN_FILE")
-ADMIN_PASSWORD=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["password"])' "$ADMIN_FILE")
+ADMIN_EMAIL=$(awk -F'"' '/"email"/{print $4}' "$ADMIN_FILE")
+ADMIN_PASSWORD=$(awk -F'"' '/"password"/{print $4}' "$ADMIN_FILE")
 set +a
 
+print_banner() {
+  cat <<EOF
+
+──────────────────────────────────────────────────────────────────────
+Semiont admin credentials (saved to $ADMIN_FILE)
+──────────────────────────────────────────────────────────────────────
+  email:    $ADMIN_EMAIL
+  password: $ADMIN_PASSWORD
+──────────────────────────────────────────────────────────────────────
+
+EOF
+}
+
+# Print credentials up front so the user sees them even if compose fails.
+print_banner
+
 if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  echo "WARNING: ANTHROPIC_API_KEY is not set."
-  echo "  Add it as a Codespaces user secret at:"
-  echo "    https://github.com/settings/codespaces"
-  echo "  Then rebuild the container (Codespaces: Rebuild Container)."
+  cat <<EOF
+WARNING: ANTHROPIC_API_KEY is not set.
+  Add it as a Codespaces user secret at:
+    https://github.com/settings/codespaces
+  Then rebuild the container (Codespaces: Rebuild Container).
+
+EOF
 fi
 
-docker compose \
+echo "Bringing up backend stack (compose up -d --wait)..."
+
+COMPOSE_OK=true
+if ! docker compose \
   -f .semiont/compose/backend.yml \
   -f .devcontainer/docker-compose.codespaces.yml \
   --profile observe \
-  up -d --wait
+  up -d --wait; then
+  COMPOSE_OK=false
+fi
 
-# nomic-embed-text (~270MB) is required by the embedding layer in the
-# anthropic config. Idempotent — exits fast if already pulled.
+# Best-effort embedding-model pull (idempotent, ignored on failure)
 docker compose -f .semiont/compose/backend.yml exec -T ollama \
-  ollama pull nomic-embed-text || true
+  ollama pull nomic-embed-text 2>/dev/null || true
 
-cat <<EOF
+if $COMPOSE_OK; then
+  cat <<EOF
 
 Semiont stack is up.
   Backend API    → port 4000  (forwarded by Codespaces)
   Jaeger UI      → port 16686
   Neo4j Browser  → port 7474   (login: neo4j / localpass)
 
-Admin credentials (from $ADMIN_FILE):
-  email:    $ADMIN_EMAIL
-  password: $ADMIN_PASSWORD
-
-Bring down with:  docker compose -f .semiont/compose/backend.yml --profile observe down
 EOF
+  print_banner
+  echo "Bring down with:  docker compose -f .semiont/compose/backend.yml --profile observe down"
+else
+  cat <<EOF
+
+ERROR: docker compose up did not bring all services healthy.
+
+Diagnostics:
+  docker compose -f .semiont/compose/backend.yml ps
+  docker compose -f .semiont/compose/backend.yml logs --tail=200 backend
+  docker compose -f .semiont/compose/backend.yml logs --tail=200 worker
+  docker compose -f .semiont/compose/backend.yml logs --tail=200 smelter
+
+After fixing, retry:
+  bash .devcontainer/post-start.sh
+
+EOF
+  print_banner
+  exit 1
+fi
