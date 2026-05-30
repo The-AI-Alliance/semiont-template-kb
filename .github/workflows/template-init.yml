@@ -1,8 +1,8 @@
 name: template-init
 
 # Runs once when a new repo is created from this template. Rewrites
-# owner/repo references in the README so badges, codespace URLs, and other
-# links point at the fork. Then deletes itself.
+# owner/repo references in the README (badges, codespace URLs, links) and the
+# devcontainer name so they identify the fork. Then deletes itself.
 #
 # The `if` guard skips the original template repo — only forks ever
 # actually run the body.
@@ -44,7 +44,12 @@ jobs:
           #    Codespaces section — the fork already came from the template.
           sed -i '/For a KB you intend to keep, \*\*\[use this template\]/d' README.md
 
-          # 5. Self-destruct so this workflow doesn't run again.
+          # 5. Devcontainer label — the template names the Codespace "Semiont
+          #    Template KB" in every fork. Rewrite it to the repo name so each
+          #    fork's Codespace self-identifies rather than reading "Template".
+          sed -i "s|\"name\": \"Semiont Template KB\"|\"name\": \"${NAME}\"|" .devcontainer/devcontainer.json
+
+          # 6. Self-destruct so this workflow doesn't run again.
           git rm .github/workflows/template-init.yml
 
       - name: Commit and push
