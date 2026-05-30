@@ -7,6 +7,6 @@ sync = true
 
 [site]
 domain = "localhost:8080"
-siteName = "Empty Knowledge Base"
+siteName = "Template Knowledge Base"
 adminEmail = ""
 oauthAllowedDomains = ["example.com"]
