@@ -1,0 +1,5 @@
+Photosynthesis is the process by which plants, algae, and certain bacteria convert light energy into chemical energy stored in glucose. The overall reaction transforms carbon dioxide and water into sugar and oxygen, using sunlight as the energy input.
+
+The light-dependent reactions occur in the thylakoid membranes of chloroplasts. Chlorophyll absorbs photons and transfers electrons through a chain of carriers, generating ATP and NADPH while splitting water molecules and releasing oxygen as a byproduct.
+
+The light-independent reactions, known as the Calvin cycle, take place in the chloroplast stroma. The enzyme RuBisCO fixes carbon dioxide onto a five-carbon sugar, and a series of reductions powered by ATP and NADPH produce glucose and other organic molecules.

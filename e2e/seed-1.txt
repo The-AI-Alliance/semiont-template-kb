@@ -1,0 +1,5 @@
+Quantum computing is a model of computation that uses quantum-mechanical phenomena, such as superposition and entanglement, to perform operations on data. Where a classical bit is either zero or one, a qubit can be a superposition of both states until measured.
+
+A qubit is the quantum analogue of a bit. Its state is described by a two-dimensional complex vector. Measurement collapses the qubit to one of the two basis states with probabilities determined by the squared magnitudes of the amplitudes.
+
+When two or more qubits become entangled, their joint state cannot be expressed as a product of individual qubit states. Operations on one entangled qubit instantaneously affect the others, regardless of distance.
