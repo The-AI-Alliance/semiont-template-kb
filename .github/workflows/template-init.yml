@@ -49,7 +49,12 @@ jobs:
           #    fork's Codespace self-identifies rather than reading "Template".
           sed -i "s|\"name\": \"Semiont Template KB\"|\"name\": \"${NAME}\"|" .devcontainer/devcontainer.json
 
-          # 6. Self-destruct so this workflow doesn't run again.
+          # 6. Remove the clean-template guard — it enforces the template's
+          #    frozen file set, which forks deliberately outgrow (corpus,
+          #    events, generated resources).
+          git rm .github/workflows/clean-template.yml .github/scripts/check-clean-template.sh .template-allowlist
+
+          # 7. Self-destruct so this workflow doesn't run again.
           git rm .github/workflows/template-init.yml
 
       - name: Commit and push
