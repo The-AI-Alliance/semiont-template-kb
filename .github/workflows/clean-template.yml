@@ -1,0 +1,26 @@
+name: clean-template
+
+# Fails if the template's tracked file set drifts from .template-allowlist —
+# the guard against runtime/test artifacts (event streams, demo output, e2e
+# seeds) getting committed into what must stay clean scaffolding.
+#
+# Only runs in the template repo; removed from forks by template-init, which
+# deliberately outgrow the frozen file set.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  allowlist:
+    name: tracked tree matches allowlist
+    if: github.repository == 'The-AI-Alliance/semiont-template-kb'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify against .template-allowlist
+        run: bash .github/scripts/check-clean-template.sh
