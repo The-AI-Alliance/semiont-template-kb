@@ -14,6 +14,7 @@
 .semiont/config
 .semiont/containers/Dockerfile.backend
 .semiont/containers/Dockerfile.smelter
+.semiont/containers/Dockerfile.weaver
 .semiont/containers/Dockerfile.worker
 .semiont/containers/semiontconfig/anthropic.toml
 .semiont/containers/semiontconfig/ollama-gemma.toml
