@@ -145,7 +145,7 @@ services:
       dockerfile: .semiont/containers/Dockerfile.worker
     ports:
       - "9090:9090"
-    mem_limit: 8g
+    mem_limit: 2g
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       BACKEND_HOST: backend
@@ -166,7 +166,7 @@ services:
       dockerfile: .semiont/containers/Dockerfile.smelter
     ports:
       - "9091:9091"
-    mem_limit: 4g
+    mem_limit: 2g
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       BACKEND_HOST: backend
@@ -190,7 +190,7 @@ services:
       dockerfile: .semiont/containers/Dockerfile.weaver
     ports:
       - "9092:9092"
-    mem_limit: 4g
+    mem_limit: 3g
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       BACKEND_HOST: backend
