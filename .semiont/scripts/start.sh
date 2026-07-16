@@ -550,7 +550,13 @@ run_cmd "$RT" run -d --rm \
 wait_for_http Weaver http://localhost:9092/health 30
 ok "Weaver healthy (http://localhost:9092)"
 
-# --- Tail logs ---
+# --- Follow logs; Ctrl+C (or a crashing service) tears down the whole stack ---
+#
+# The containers run detached, so without an explicit teardown they'd linger
+# after this script exits. Ctrl+C / termination stops the whole stack. A single
+# service that exits on its own is only reported (see the poll below) — it does
+# not take the rest down. (Under Apple Container a stopped --rm container
+# persists, so we rm after stop, the same idempotent cleanup the preflight does.)
 
 banner "Containers"
 list_containers | head -1
@@ -559,18 +565,54 @@ list_containers | grep semiont- || true
 echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh containers ready\033[0m"
 
 banner "Logs"
-log "Backend: semiont-backend | Worker: semiont-worker | Smelter: semiont-smelter | Weaver: semiont-weaver"
-log "Press Ctrl+C to stop"
+log "Following backend · worker · smelter · weaver — ${BOLD}Ctrl+C stops the stack${RESET}"
 
 sleep 2
-("$RT" logs --follow semiont-backend 2>/dev/null || true) &
-LOG_PIDS=("$!")
-("$RT" logs --follow semiont-worker 2>/dev/null || true) &
-LOG_PIDS+=("$!")
-("$RT" logs --follow semiont-smelter 2>/dev/null || true) &
-LOG_PIDS+=("$!")
-("$RT" logs --follow semiont-weaver 2>/dev/null || true) &
-LOG_PIDS+=("$!")
+LOG_PIDS=()
+for svc in backend worker smelter weaver; do
+  ("$RT" logs --follow "semiont-${svc}" 2>/dev/null || true) &
+  LOG_PIDS+=("$!")
+done
 
-trap 'kill "${LOG_PIDS[@]}" 2>/dev/null' EXIT
-wait || true
+# Everything start.sh brings up (services + deps + observability). Stopping a
+# container that isn't running is a harmless no-op, so the list can be static.
+STACK_CONTAINERS=(
+  semiont-backend semiont-worker semiont-smelter semiont-weaver
+  semiont-neo4j semiont-qdrant semiont-postgres semiont-ollama semiont-jaeger
+)
+
+teardown() {
+  trap - INT TERM EXIT   # disarm so teardown runs exactly once
+  echo ""
+  banner "Stopping"
+  kill "${LOG_PIDS[@]}" 2>/dev/null || true
+  for c in "${STACK_CONTAINERS[@]}"; do
+    "$RT" stop "$c" > /dev/null 2>&1 || true
+    "$RT" rm "$c" > /dev/null 2>&1 || true
+  done
+  ok "Stack stopped"
+}
+trap 'teardown; exit 130' INT TERM
+trap teardown EXIT
+
+# Stream logs and block until Ctrl+C. bash 3.2 has no `wait -n`, so poll
+# container liveness: if a service exits on its own, report it once (its log
+# stream goes quiet, which is otherwise easy to miss) but leave the rest of the
+# stack running — a single service dying shouldn't take everything down. Ctrl+C
+# still stops the whole stack.
+reported=" "
+while true; do
+  running=$(list_containers || true)
+  if [ -n "$running" ]; then
+    for svc in backend worker smelter weaver; do
+      if ! printf '%s\n' "$running" | grep -q "semiont-${svc}"; then
+        case "$reported" in
+          *" ${svc} "*) : ;;   # already reported this one
+          *) warn "semiont-${svc} exited — its logs stopped; the rest of the stack is still up. Ctrl+C stops everything."
+             reported="${reported}${svc} " ;;
+        esac
+      fi
+    done
+  fi
+  sleep 3
+done
