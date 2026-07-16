@@ -203,7 +203,36 @@ fi
 # local dev-build script) and skips the pull.
 SEMIONT_VERSION="${SEMIONT_VERSION:-latest}"
 IMAGE_REGISTRY="ghcr.io/the-ai-alliance"
-CONFIG_MOUNT=(--volume "$(pwd)/${CONFIG_FILE}:/home/semiont/.semiontconfig:ro")
+
+# Each service gets its OWN copy of the config to mount — do not "simplify"
+# this back to one shared file. Under Apple Container (one VM per container,
+# each with its own virtiofs share), mounting the same host file into a second
+# VM transiently breaks existing mounts of that file in other VMs: a 50ms-
+# interval read loop showed reads failing for ~100ms exactly when another
+# container mounted the same file. The backend is the victim: its CMD re-reads
+# ~/.semiontconfig across several CLI invocations (provision → start → useradd)
+# while the worker/smelter/weaver launch and mount theirs, and the CLI treats
+# an unreadable config as "not configured" — so a shared file intermittently
+# killed a healthy backend mid-chain ("Environment not specified"). Private
+# copies mean no host file is ever mounted twice, closing the race outright.
+#
+# docker/podman don't need this (single shared VM / native bind mounts), but
+# the copies are harmless there, so one code path serves all runtimes. The
+# staging dir is removed by teardown (which stops the stack first); on early
+# failure exits it deliberately lingers, because surviving containers still
+# mount these copies — deleting the backing files under a live mount would
+# recreate the very read-failure class this exists to prevent. Copies are made
+# fresh each run, so the repo TOMLs stay the single source of truth.
+#
+# The staging dir MUST be under /tmp, not $TMPDIR: Apple Container cannot
+# sustain mounts from /var/folders (macOS's per-user private temp) — the first
+# read succeeds, then every subsequent read fails (measured: 1 ok / 29 fail over
+# 30s, vs 30/30 ok from /tmp), which killed the backend on its second CLI
+# invocation.
+CONFIG_STAGE=$(mktemp -d /tmp/semiont-config.XXXXXX)
+for svc in backend worker smelter weaver; do
+  cp "$CONFIG_FILE" "${CONFIG_STAGE}/${svc}.toml"
+done
 
 banner "Semiont Local Backend"
 log "Container runtime: ${BOLD}${RT}${RESET}"
@@ -437,6 +466,7 @@ if [[ -n "$ADMIN_EMAIL" && -n "$ADMIN_PASSWORD" ]]; then
   log "Admin user: ${BOLD}${ADMIN_EMAIL}${RESET}"
 fi
 
+CONFIG_MOUNT=(--volume "${CONFIG_STAGE}/backend.toml:/home/semiont/.semiontconfig:ro")
 run_cmd "$RT" run -d --rm \
   --name semiont-backend \
   --publish 4000:4000 \
@@ -482,6 +512,7 @@ fi
 
 banner "Starting Worker Pool"
 
+CONFIG_MOUNT=(--volume "${CONFIG_STAGE}/worker.toml:/home/semiont/.semiontconfig:ro")
 run_cmd "$RT" run -d --rm \
   --name semiont-worker \
   --memory 2G \
@@ -504,6 +535,7 @@ ok "Worker pool healthy (http://localhost:9090)"
 
 banner "Starting Smelter"
 
+CONFIG_MOUNT=(--volume "${CONFIG_STAGE}/smelter.toml:/home/semiont/.semiontconfig:ro")
 run_cmd "$RT" run -d --rm \
   --name semiont-smelter \
   --memory 2G \
@@ -532,6 +564,7 @@ ok "Smelter healthy (http://localhost:9091)"
 
 banner "Starting Weaver"
 
+CONFIG_MOUNT=(--volume "${CONFIG_STAGE}/weaver.toml:/home/semiont/.semiontconfig:ro")
 run_cmd "$RT" run -d --rm \
   --name semiont-weaver \
   --memory 3G \
@@ -592,6 +625,7 @@ teardown() {
     "$RT" stop "$c" > /dev/null 2>&1 || true
     "$RT" rm "$c" > /dev/null 2>&1 || true
   done
+  rm -rf "$CONFIG_STAGE"
   ok "Stack stopped"
 }
 trap 'teardown; exit 130' INT TERM
