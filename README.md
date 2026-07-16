@@ -1,7 +1,6 @@
 # Semiont Template Knowledge Base
 
 [![Lint](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/lint.yml?query=branch%3Amain)
-[![Build](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/The-AI-Alliance/semiont-template-kb/actions/workflows/build.yml?query=branch%3Amain)
 [![License](https://img.shields.io/github/license/The-AI-Alliance/semiont-template-kb)](https://github.com/The-AI-Alliance/semiont-template-kb/blob/main/LICENSE)
 [![Use this template](https://img.shields.io/badge/use%20this-template-2ea44f?logo=github)](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance)
 
