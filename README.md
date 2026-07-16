@@ -49,7 +49,7 @@ Install the [GitHub CLI (`gh`)](https://cli.github.com/) if you haven't already.
 
 ### Create the codespace
 
-A premium machine class is recommended — first-time setup builds containers and pulls models, which the larger machine handles more comfortably:
+A premium machine class is recommended — first-time setup pulls images and models, which the larger machine handles more comfortably:
 
 ```bash
 gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
@@ -96,7 +96,7 @@ Add documents anywhere in the project root. They become resources in the knowled
 
 ## Inference Configuration
 
-The start script selects an inference config with the `--config` flag. Configs live in `.semiont/containers/semiontconfig/`:
+The start script selects an inference config with the `--config` flag. Configs live in `.semiont/semiontconfig/`:
 
 - **`ollama-gemma`** (default for `start.sh`) — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
 - **`anthropic`** (default for Codespaces) — cloud inference via the Anthropic API. Requires `ANTHROPIC_API_KEY`.
@@ -112,7 +112,7 @@ export ANTHROPIC_API_KEY=<your-api-key>
 .semiont/scripts/start.sh --list-configs
 ```
 
-To create your own config, add a `.toml` file to `.semiont/containers/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
+To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
 
 ## Container Images
 
@@ -139,8 +139,7 @@ See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs
 .semiont/
 ├── config                        # Project name and settings
 ├── compose/                      # Docker Compose file for the stack
-├── containers/
-│   └── semiontconfig/            # Inference config variants (.toml)
+├── semiontconfig/                # Inference config variants (.toml)
 └── scripts/                      # Stack startup script
 ```
 
