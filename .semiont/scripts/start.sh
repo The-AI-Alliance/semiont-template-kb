@@ -570,7 +570,9 @@ log "Following backend · worker · smelter · weaver — ${BOLD}Ctrl+C stops th
 sleep 2
 LOG_PIDS=()
 for svc in backend worker smelter weaver; do
-  ("$RT" logs --follow "semiont-${svc}" 2>/dev/null || true) &
+  # Prefix every line with the service name so the interleaved streams are
+  # attributable (structured logs go to stdout; container stderr is dropped).
+  ("$RT" logs --follow "semiont-${svc}" 2>/dev/null | sed "s/^/[${svc}] /" || true) &
   LOG_PIDS+=("$!")
 done
 
