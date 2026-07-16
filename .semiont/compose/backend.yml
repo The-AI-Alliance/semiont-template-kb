@@ -1,5 +1,6 @@
-# Semiont backend stack — backend, worker pool, smelter, weaver, plus Neo4j, Qdrant,
-# Ollama, and PostgreSQL. Equivalent end state to .semiont/scripts/start.sh.
+# Semiont stack — backend, worker pool, smelter, weaver, and frontend
+# (http://localhost:3000), plus Neo4j, Qdrant, Ollama, and PostgreSQL.
+# Equivalent end state to .semiont/scripts/start.sh.
 #
 # The four service images are pulled from GHCR (they ship config-free); the
 # selected config TOML is bind-mounted at runtime. Set SEMIONT_VERSION to choose
@@ -200,6 +201,18 @@ services:
       POSTGRES_HOST: postgres
       SEMIONT_WORKER_SECRET: ${SEMIONT_WORKER_SECRET:?SEMIONT_WORKER_SECRET must be set, e.g. export SEMIONT_WORKER_SECRET=$$(openssl rand -hex 32)}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Static SPA server (@semiont/frontend server.js): no config mount and no
+  # service env — the browser talks to the backend directly on localhost:4000.
+  frontend:
+    container_name: semiont-frontend
+    image: ghcr.io/the-ai-alliance/semiont-frontend:${SEMIONT_VERSION:-latest}
+    ports:
+      - "3000:3000"
+    mem_limit: 1g
     depends_on:
       backend:
         condition: service_healthy

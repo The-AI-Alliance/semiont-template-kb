@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Start a local Semiont backend with all services in containers.
+# Start a local Semiont stack — backend services and frontend — in containers.
 
 echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh started\033[0m"
 
@@ -105,8 +105,9 @@ while [[ $# -gt 0 ]]; do
     --help|-h)
       echo "Usage: start.sh [options]"
       echo ""
-      echo "Start a local Semiont backend with Neo4j, Qdrant, Ollama, PostgreSQL,"
-      echo "and the Semiont API server — all in containers."
+      echo "Start a local Semiont stack with Neo4j, Qdrant, Ollama, PostgreSQL,"
+      echo "the Semiont API server, worker, smelter, weaver, and the frontend"
+      echo "(http://localhost:3000) — all in containers."
       echo ""
       echo "Options:"
       echo "  --config <name>       Semiontconfig to use (default: ollama-gemma)"
@@ -286,7 +287,7 @@ banner "Preflight"
 # `rm` after `stop` (both with `|| true`) makes the loop idempotent across
 # all three states the container could be in: not present, running, or
 # stopped-but-not-removed.
-for c in semiont-jaeger semiont-neo4j semiont-qdrant semiont-postgres semiont-backend semiont-worker semiont-smelter semiont-weaver; do
+for c in semiont-jaeger semiont-neo4j semiont-qdrant semiont-postgres semiont-backend semiont-worker semiont-smelter semiont-weaver semiont-frontend; do
   run_cmd "$RT" stop "$c" 2>/dev/null || true
   run_cmd "$RT" rm "$c" 2>/dev/null || true
 done
@@ -300,6 +301,7 @@ require_port_free 4000 "Backend"
 require_port_free 9090 "Worker"
 require_port_free 9091 "Smelter"
 require_port_free 9092 "Weaver"
+require_port_free 3000 "Frontend"
 if $OBSERVE; then
   require_port_free 16686 "Jaeger UI"
   require_port_free 4318 "Jaeger OTLP"
@@ -317,7 +319,7 @@ banner "Pulling Images"
 if [[ "$SEMIONT_VERSION" == "local" ]]; then
   log "Using locally-built ${BOLD}:local${RESET} images (skipping pull)"
 else
-  for svc in backend worker smelter weaver; do
+  for svc in backend worker smelter weaver frontend; do
     img="${IMAGE_REGISTRY}/semiont-${svc}:${SEMIONT_VERSION}"
     case "$RT" in
       container) run_cmd "$RT" image pull "$img" ;;
@@ -583,6 +585,22 @@ run_cmd "$RT" run -d --rm \
 wait_for_http Weaver http://localhost:9092/health 30
 ok "Weaver healthy (http://localhost:9092)"
 
+# --- Run frontend ---
+#
+# A static SPA server (@semiont/frontend server.js): no config mount and no
+# service env — the browser talks to the backend directly on localhost:4000.
+
+banner "Starting Frontend"
+
+run_cmd "$RT" run -d --rm \
+  --name semiont-frontend \
+  --memory 1G \
+  --publish 3000:3000 \
+  "${IMAGE_REGISTRY}/semiont-frontend:${SEMIONT_VERSION}" > /dev/null
+
+wait_for_http Frontend http://localhost:3000 30
+ok "Frontend on http://localhost:3000"
+
 # --- Follow logs; Ctrl+C (or a crashing service) tears down the whole stack ---
 #
 # The containers run detached, so without an explicit teardown they'd linger
@@ -598,11 +616,11 @@ list_containers | grep semiont- || true
 echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh containers ready\033[0m"
 
 banner "Logs"
-log "Following backend · worker · smelter · weaver — ${BOLD}Ctrl+C stops the stack${RESET}"
+log "Following backend · worker · smelter · weaver · frontend — ${BOLD}Ctrl+C stops the stack${RESET}"
 
 sleep 2
 LOG_PIDS=()
-for svc in backend worker smelter weaver; do
+for svc in backend worker smelter weaver frontend; do
   # Prefix every line with the service name so the interleaved streams are
   # attributable (structured logs go to stdout; container stderr is dropped).
   ("$RT" logs --follow "semiont-${svc}" 2>/dev/null | sed "s/^/[${svc}] /" || true) &
@@ -612,7 +630,7 @@ done
 # Everything start.sh brings up (services + deps + observability). Stopping a
 # container that isn't running is a harmless no-op, so the list can be static.
 STACK_CONTAINERS=(
-  semiont-backend semiont-worker semiont-smelter semiont-weaver
+  semiont-backend semiont-worker semiont-smelter semiont-weaver semiont-frontend
   semiont-neo4j semiont-qdrant semiont-postgres semiont-ollama semiont-jaeger
 )
 
@@ -640,7 +658,7 @@ reported=" "
 while true; do
   running=$(list_containers || true)
   if [ -n "$running" ]; then
-    for svc in backend worker smelter weaver; do
+    for svc in backend worker smelter weaver frontend; do
       if ! printf '%s\n' "$running" | grep -q "semiont-${svc}"; then
         case "$reported" in
           *" ${svc} "*) : ;;   # already reported this one
