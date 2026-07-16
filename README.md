@@ -18,7 +18,7 @@ Pick one path — Local or Codespaces — and follow it end to end.
 
 No npm or Node.js installation required — everything runs in containers.
 
-### Start the backend
+### Start the stack
 
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
@@ -26,11 +26,11 @@ cd my-kb
 .semiont/scripts/start.sh --email admin@example.com --password password
 ```
 
-This builds and starts the full backend stack: PostgreSQL, Neo4j, Qdrant, Ollama, and the Semiont API server. The script auto-detects your container runtime.
+This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The script auto-detects your container runtime.
 
 ### Browse the knowledge base
 
-Start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), then open it at **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
+The Semiont browser starts with the stack. Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
@@ -57,16 +57,16 @@ gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premium
 
 The command prints the new codespace's name. Subsequent `gh codespace` commands will prompt you to pick this codespace if you have more than one (or use it directly if it's the only one).
 
-### Start the backend
+### Start the stack
 
-A Codespace builds the backend stack via `docker compose` with the anthropic config. First-time setup takes 5-10 minutes (image build, model pull). On every start, the configuration generates fresh admin credentials and saves them to `.devcontainer/admin.json`.
+A Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images. First-time setup takes a few minutes (image and model pulls). On every start, the configuration generates fresh admin credentials and saves them to `.devcontainer/admin.json`.
 
 ### Browse the knowledge base
 
-Forward the codespace's backend port to your local machine so the Semiont browser can reach it the same way it would a local backend:
+The Semiont browser runs in the codespace too. Forward both its port and the backend's to your local machine:
 
 ```bash
-gh codespace ports forward 4000:4000
+gh codespace ports forward 3000:3000 4000:4000
 ```
 
 If `gh` rejects this with `must have admin rights to Repository`, your `gh` install lacks the codespace OAuth scope. Grant it once and re-run:
@@ -81,7 +81,7 @@ Leave the forward running. In another terminal, fetch the auto-generated admin c
 gh codespace ssh -- cat .devcontainer/admin.json
 ```
 
-Then start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), open it at **http://localhost:3000**, and add your knowledge base in the **Knowledge Bases** panel:
+Then open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
@@ -114,16 +114,34 @@ export ANTHROPIC_API_KEY=<your-api-key>
 
 To create your own config, add a `.toml` file to `.semiont/containers/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
 
+## Container Images
+
+The stack runs published, attested images from GitHub Container Registry — `semiont-backend`, `semiont-worker`, `semiont-smelter`, `semiont-weaver`, and `semiont-frontend`. Nothing is built locally; a fresh start is a pull, not a compile.
+
+`SEMIONT_VERSION` selects the image version (`latest` by default):
+
+```bash
+SEMIONT_VERSION=0.5.12 .semiont/scripts/start.sh --email admin@example.com --password password
+```
+
+Every image is vulnerability- and license-scanned before publish, and ships SLSA build-provenance and SBOM attestations you can verify before running anything:
+
+```bash
+gh attestation verify oci://ghcr.io/the-ai-alliance/semiont-backend:latest --owner The-AI-Alliance
+```
+
+See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/IMAGES.md) for the full inventory and verification details.
+
 ## What's Inside
 
 ```
 .devcontainer/                    # GitHub Codespaces configuration
 .semiont/
 ├── config                        # Project name and settings
-├── compose/                      # Docker Compose file for backend
-├── containers/                   # Dockerfiles and inference configs
+├── compose/                      # Docker Compose file for the stack
+├── containers/
 │   └── semiontconfig/            # Inference config variants (.toml)
-└── scripts/                      # Backend startup script
+└── scripts/                      # Stack startup script
 ```
 
 As you work in the knowledge base, the backend writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The backend container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.
