@@ -85,7 +85,6 @@ list_containers() {
 
 CONFIG_NAME="ollama-gemma"
 CONFIG_DIR=".semiont/containers/semiontconfig"
-CACHE_FLAG=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 CLEAN_OLLAMA=false
@@ -97,7 +96,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --config) CONFIG_NAME="$2"; shift 2 ;;
     --list-configs) LIST_CONFIGS=true; shift ;;
-    --no-cache) CACHE_FLAG="--no-cache"; shift ;;
     --email) ADMIN_EMAIL="$2"; shift 2 ;;
     --password) ADMIN_PASSWORD="$2"; shift 2 ;;
     --clean-ollama) CLEAN_OLLAMA=true; shift ;;
@@ -113,7 +111,6 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --config <name>       Semiontconfig to use (default: ollama-gemma)"
       echo "  --list-configs        List available configs and exit"
-      echo "  --no-cache            Force a fresh backend container build"
       echo "  --email <email>       Admin user email (requires --password)"
       echo "  --password <pass>     Admin user password (requires --email)"
       echo "  --clean-ollama        Remove the Ollama model cache volume and exit"
@@ -199,12 +196,19 @@ if [[ "${CLEAN_OLLAMA}" == "true" ]]; then
   exit 0
 fi
 
-NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org}"
+# Published service images are consumed by version (they ship config-free): we
+# pull each explicitly below (a `run` alone will NOT refresh a cached mutable tag
+# like :latest), and the selected config TOML is bind-mounted into every container
+# at runtime. SEMIONT_VERSION=local uses locally-built :local images (from the
+# local dev-build script) and skips the pull.
+SEMIONT_VERSION="${SEMIONT_VERSION:-latest}"
+IMAGE_REGISTRY="ghcr.io/the-ai-alliance"
+CONFIG_MOUNT=(--volume "$(pwd)/${CONFIG_FILE}:/home/semiont/.semiontconfig:ro")
 
 banner "Semiont Local Backend"
 log "Container runtime: ${BOLD}${RT}${RESET}"
 log "Config: ${BOLD}${CONFIG_NAME}${RESET}"
-log "npm registry: ${DIM}${NPM_REGISTRY}${RESET}"
+log "Image version: ${BOLD}${SEMIONT_VERSION}${RESET}"
 
 # --- Resolve required env vars from config ---
 #
@@ -272,6 +276,27 @@ if $OBSERVE; then
   require_port_free 4318 "Jaeger OTLP"
 fi
 ok "Required ports are free"
+
+# --- Pull service images ---
+#
+# Pull explicitly (up front, so a bad version/registry fails before any dep
+# containers start) — a `run` alone reuses a cached :latest and never refreshes
+# it. Pull is not portable across runtimes: Apple `container` uses `image pull`,
+# docker/podman use `pull`. SEMIONT_VERSION=local uses locally-built images.
+
+banner "Pulling Images"
+if [[ "$SEMIONT_VERSION" == "local" ]]; then
+  log "Using locally-built ${BOLD}:local${RESET} images (skipping pull)"
+else
+  for svc in backend worker smelter weaver; do
+    img="${IMAGE_REGISTRY}/semiont-${svc}:${SEMIONT_VERSION}"
+    case "$RT" in
+      container) run_cmd "$RT" image pull "$img" ;;
+      *)         run_cmd "$RT" pull "$img" ;;
+    esac
+  done
+  ok "Images pulled"
+fi
 
 # --- Jaeger (observability) ---
 #
@@ -401,38 +426,6 @@ ok "PostgreSQL on port 5432"
 SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET:-$(openssl rand -hex 32)}"
 log "Worker secret: ${DIM}(generated)${RESET}"
 
-# --- Build images ---
-
-banner "Building Images"
-
-log "Building backend image..."
-run_cmd "$RT" build $CACHE_FLAG --tag semiont-backend \
-  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
-  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile.backend .
-ok "Backend image built"
-
-log "Building worker image..."
-run_cmd "$RT" build $CACHE_FLAG --tag semiont-worker \
-  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
-  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile.worker .
-ok "Worker image built"
-
-log "Building smelter image..."
-run_cmd "$RT" build $CACHE_FLAG --tag semiont-smelter \
-  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
-  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile.smelter .
-ok "Smelter image built"
-
-log "Building weaver image..."
-run_cmd "$RT" build $CACHE_FLAG --tag semiont-weaver \
-  --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
-  --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile.weaver .
-ok "Weaver image built"
-
 # --- Run backend ---
 
 banner "Starting Backend"
@@ -449,6 +442,7 @@ run_cmd "$RT" run -d --rm \
   --publish 4000:4000 \
   --memory 8G \
   --volume "$(pwd)":/kb \
+  "${CONFIG_MOUNT[@]}" \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
   ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env POSTGRES_HOST="$HOST_ADDR" \
@@ -457,11 +451,32 @@ run_cmd "$RT" run -d --rm \
   --env OLLAMA_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
   ${ADMIN_ARGS[@]+"${ADMIN_ARGS[@]}"} \
-  semiont-backend > /dev/null
+  "${IMAGE_REGISTRY}/semiont-backend:${SEMIONT_VERSION}" > /dev/null
 
 log "Waiting for backend health..."
 wait_for_http Backend http://localhost:4000/api/health 120
 ok "Backend healthy"
+
+# The worker/smelter/weaver reach the backend from inside a container over the
+# gateway (${HOST_ADDR}:4000), not localhost — and each fatally exits if its
+# first backend fetch fails. The health check above is from the host, so also
+# confirm the gateway path is reachable before starting the dependents (mirrors
+# the Ollama reachability probe above).
+log "Verifying backend reachable from containers..."
+backend_reachable=false
+for _ in $(seq 1 20); do
+  if "$RT" run --rm node:22-alpine sh -c "wget -q -O- http://${HOST_ADDR}:4000/api/health" > /dev/null 2>&1; then
+    backend_reachable=true
+    break
+  fi
+  sleep 1
+done
+if $backend_reachable; then
+  ok "Backend reachable from containers"
+else
+  fail "Backend not reachable from containers at ${HOST_ADDR}:4000 within 20s."
+  exit 1
+fi
 
 # --- Run worker pool ---
 
@@ -469,8 +484,9 @@ banner "Starting Worker Pool"
 
 run_cmd "$RT" run -d --rm \
   --name semiont-worker \
-  --memory 8G \
+  --memory 2G \
   --publish 9090:9090 \
+  "${CONFIG_MOUNT[@]}" \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
   ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
@@ -479,7 +495,7 @@ run_cmd "$RT" run -d --rm \
   --env QDRANT_HOST="${HOST_ADDR}" \
   --env POSTGRES_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
-  semiont-worker > /dev/null
+  "${IMAGE_REGISTRY}/semiont-worker:${SEMIONT_VERSION}" > /dev/null
 
 wait_for_http Worker http://localhost:9090/health 30
 ok "Worker pool healthy (http://localhost:9090)"
@@ -490,8 +506,9 @@ banner "Starting Smelter"
 
 run_cmd "$RT" run -d --rm \
   --name semiont-smelter \
-  --memory 4G \
+  --memory 2G \
   --publish 9091:9091 \
+  "${CONFIG_MOUNT[@]}" \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
   ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
@@ -500,7 +517,7 @@ run_cmd "$RT" run -d --rm \
   --env NEO4J_HOST="${HOST_ADDR}" \
   --env POSTGRES_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
-  semiont-smelter > /dev/null
+  "${IMAGE_REGISTRY}/semiont-smelter:${SEMIONT_VERSION}" > /dev/null
 
 wait_for_http Smelter http://localhost:9091/health 30
 ok "Smelter healthy (http://localhost:9091)"
@@ -517,8 +534,9 @@ banner "Starting Weaver"
 
 run_cmd "$RT" run -d --rm \
   --name semiont-weaver \
-  --memory 4G \
+  --memory 3G \
   --publish 9092:9092 \
+  "${CONFIG_MOUNT[@]}" \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
   ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
@@ -527,7 +545,7 @@ run_cmd "$RT" run -d --rm \
   --env NEO4J_HOST="${HOST_ADDR}" \
   --env POSTGRES_HOST="${HOST_ADDR}" \
   --env SEMIONT_WORKER_SECRET="${SEMIONT_WORKER_SECRET}" \
-  semiont-weaver > /dev/null
+  "${IMAGE_REGISTRY}/semiont-weaver:${SEMIONT_VERSION}" > /dev/null
 
 wait_for_http Weaver http://localhost:9092/health 30
 ok "Weaver healthy (http://localhost:9092)"
