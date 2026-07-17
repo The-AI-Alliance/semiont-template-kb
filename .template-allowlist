@@ -11,7 +11,9 @@
 .semiont/compose/backend.yml
 .semiont/config
 .semiont/events/__system__/events-000001.jsonl
+.semiont/scripts/logs.sh
 .semiont/scripts/start.sh
+.semiont/scripts/stop.sh
 .semiont/semiontconfig/anthropic.toml
 .semiont/semiontconfig/ollama-gemma.toml
 .template-allowlist
