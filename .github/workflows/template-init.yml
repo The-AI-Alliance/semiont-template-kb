@@ -49,13 +49,14 @@ jobs:
           #    fork's Codespace self-identifies rather than reading "Template".
           sed -i "s|\"name\": \"Semiont Template KB\"|\"name\": \"${NAME}\"|" .devcontainer/devcontainer.json
 
-          # 6. DID identity — site.domain is the permanent did:web host stamped
-          #    into the fork's committed event log. Rewrite the template's
-          #    identity to the fork's own Pages-style name. Owner is lowercased
-          #    (Pages hosts are lowercase); repo name is kept as-is.
+          # 6. DID identity — site.domain in .semiont/config is the permanent
+          #    did:web host stamped into the fork's committed event log. Rewrite
+          #    the template's identity to the fork's own Pages-style name.
+          #    Owner is lowercased (Pages hosts are lowercase); repo name is
+          #    kept as-is.
           OWNER_LC=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
           sed -i "s|the-ai-alliance.github.io:semiont-template-kb|${OWNER_LC}.github.io:${NAME}|g" \
-            .semiont/semiontconfig/*.toml
+            .semiont/config
 
           # 7. Remove the clean-template guard — it enforces the template's
           #    frozen file set, which forks deliberately outgrow (corpus,
