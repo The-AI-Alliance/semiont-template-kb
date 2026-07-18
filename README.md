@@ -15,6 +15,7 @@ Pick one path — Local or Codespaces — and follow it end to end.
 - A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/)
 - An inference provider: [Ollama](https://ollama.com/) for fully local inference, or an [Anthropic](https://www.anthropic.com/) API key for cloud inference. See [Inference Configuration](#inference-configuration) for details.
 - [Git](https://git-scm.com/) — for managing your documents and committing the event streams that the backend stages
+- The [Semiont launcher](https://github.com/The-AI-Alliance/semiont/tree/main/apps/launcher) — a single static binary: `brew install the-ai-alliance/semiont/semiont`
 
 No npm or Node.js installation required — everything runs in containers.
 
@@ -23,10 +24,10 @@ No npm or Node.js installation required — everything runs in containers.
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
-.semiont/scripts/start.sh --email admin@example.com --password password
+semiont start --email admin@example.com --password password
 ```
 
-This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The script auto-detects your container runtime.
+This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
 
 ### Browse the knowledge base
 
@@ -96,20 +97,20 @@ Add documents anywhere in the project root. They become resources in the knowled
 
 ## Inference Configuration
 
-The start script selects an inference config with the `--config` flag. Configs live in `.semiont/semiontconfig/`:
+`semiont start` selects an inference config with the `--config` flag. Configs live in `.semiont/semiontconfig/`:
 
-- **`ollama-gemma`** (default for `start.sh`) — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
+- **`ollama-gemma`** (default for `semiont start`) — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
 - **`anthropic`** (default for Codespaces) — cloud inference via the Anthropic API. Requires `ANTHROPIC_API_KEY`.
 
 ```bash
 # Use Anthropic cloud inference locally
 export ANTHROPIC_API_KEY=<your-api-key>
-.semiont/scripts/start.sh --config anthropic --email admin@example.com --password password
+semiont start --config anthropic --email admin@example.com --password password
 ```
 
 ```bash
 # List available configs
-.semiont/scripts/start.sh --list-configs
+semiont start --list-configs
 ```
 
 To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
@@ -121,7 +122,7 @@ The stack runs published, attested images from GitHub Container Registry — `se
 `SEMIONT_VERSION` selects the image version (`latest` by default):
 
 ```bash
-SEMIONT_VERSION=0.5.12 .semiont/scripts/start.sh --email admin@example.com --password password
+SEMIONT_VERSION=0.5.12 semiont start --email admin@example.com --password password
 ```
 
 Every image is vulnerability- and license-scanned before publish, and ships SLSA build-provenance and SBOM attestations you can verify before running anything:
