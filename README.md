@@ -24,7 +24,8 @@ No npm or Node.js installation required — everything runs in containers.
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
-semiont start --email admin@example.com --password password
+semiont start
+semiont useradd --email admin@example.com --password password --admin
 ```
 
 This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
@@ -37,8 +38,8 @@ The Semiont browser starts with the stack. Open **http://localhost:3000** and ad
 |---|---|
 | Host | `localhost` |
 | Port | `4000` |
-| Email | the email you passed to `--email` |
-| Password | the password you passed to `--password` |
+| Email | the email you passed to `semiont useradd` |
+| Password | the password you passed to `semiont useradd` |
 
 ## Quick Start: Codespaces
 
@@ -105,7 +106,8 @@ Add documents anywhere in the project root. They become resources in the knowled
 ```bash
 # Use Anthropic cloud inference locally
 export ANTHROPIC_API_KEY=<your-api-key>
-semiont start --config anthropic --email admin@example.com --password password
+semiont start --config anthropic
+semiont useradd --email admin@example.com --password password --admin
 ```
 
 ```bash
@@ -122,7 +124,7 @@ The stack runs published, attested images from GitHub Container Registry — `se
 `SEMIONT_VERSION` selects the image version (`latest` by default):
 
 ```bash
-SEMIONT_VERSION=0.5.12 semiont start --email admin@example.com --password password
+SEMIONT_VERSION=0.5.12 semiont start
 ```
 
 Every image is vulnerability- and license-scanned before publish, and ships SLSA build-provenance and SBOM attestations you can verify before running anything:
