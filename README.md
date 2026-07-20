@@ -91,7 +91,9 @@ semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the
 ```bash
 gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
 gh codespace ports forward 3000:3000 4000:4000   # leave running
-gh codespace ssh -- cat .devcontainer/admin.json # in another terminal
+gh codespace ssh -- cat '/workspaces/*/.devcontainer/admin.json' # in another terminal
+#   (ssh lands in /home/vscode, not the workspace — hence the absolute,
+#    quoted path: the quotes keep your shell from expanding it locally)
 ```
 
 This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in with those credentials. Setup generates the admin credentials once, at creation, into `.devcontainer/admin.json` — and prints them on every start.
