@@ -45,52 +45,64 @@ The Semiont browser starts with the stack. Open **http://localhost:3000** and ad
 
 For a KB you intend to keep, **[use this template](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance) first to create your own repo**, then create a Codespace from there — that gives you write access for committing your annotations and event streams. The commands below target this template directly; useful for trying out, but read-only.
 
-Install the [GitHub CLI (`gh`)](https://cli.github.com/) if you haven't already.
+**Prerequisites:** the [Semiont launcher](https://github.com/The-AI-Alliance/semiont/tree/main/apps/launcher) (`brew install the-ai-alliance/semiont/semiont`) and the [GitHub CLI (`gh`)](https://cli.github.com/), signed in with `gh auth login`.
 
 > **Before creating:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
 
-### Create the codespace
-
-A premium machine class is recommended — first-time setup pulls images and models, which the larger machine handles more comfortably:
+### Start the KB in the cloud
 
 ```bash
-gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
+semiont start --runtime codespace --repo The-AI-Alliance/semiont-template-kb
 ```
 
-The command prints the new codespace's name. Subsequent `gh codespace` commands will prompt you to pick this codespace if you have more than one (or use it directly if it's the only one).
+One command does the whole thing: it checks your `gh` auth, scope, and the API-key secret up front, creates the codespace on a premium machine (or resumes the one you already have — one per repo), waits for the stack to actually answer, forwards the KB to your machine, and prints the auto-generated admin credentials. First-time setup takes a few minutes: the Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images and models.
 
-### Start the stack
-
-A Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images. First-time setup takes a few minutes (image and model pulls). Setup generates admin credentials once, at creation, into `.devcontainer/admin.json` — and prints them on every start.
+The KB lands on **http://localhost:4000** — or the next free port, which the launcher prints. Run `semiont status` any time for the codespace's state, health, and credentials.
 
 ### Browse the knowledge base
 
-The Semiont browser runs in the codespace too. Forward both its port and the backend's to your local machine:
+The browser runs **locally** and connects to any number of knowledge bases — cloud or local:
 
 ```bash
-gh codespace ports forward 3000:3000 4000:4000
+semiont start --service frontend
 ```
 
-If `gh` rejects this with `must have admin rights to Repository`, your `gh` install lacks the codespace OAuth scope. Grant it once and re-run:
+Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
+
+| Field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | the KB port the launcher printed (`4000` unless it was taken) |
+| Email | from the credentials the launcher printed (`semiont status` re-prints them) |
+| Password | likewise |
+
+Because the browser is local and each codespace KB gets its own port, you can run several KBs at once — start another with `--repo <owner>/<other-kb>` and add it to the same panel.
+
+### Stop it
+
+```bash
+semiont stop --repo The-AI-Alliance/semiont-template-kb            # halt billing; state and credentials persist
+semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the codespace
+```
+
+<details>
+<summary>Without the launcher: the raw <code>gh</code> recipe</summary>
+
+```bash
+gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
+gh codespace ports forward 3000:3000 4000:4000   # leave running
+gh codespace ssh -- cat .devcontainer/admin.json # in another terminal
+```
+
+This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in with those credentials. Setup generates the admin credentials once, at creation, into `.devcontainer/admin.json` — and prints them on every start.
+
+If `gh` rejects the forward with `must have admin rights to Repository`, your `gh` install lacks the codespace OAuth scope. Grant it once and re-run:
 
 ```bash
 gh auth refresh -h github.com -s codespace
 ```
 
-Leave the forward running. In another terminal, fetch the auto-generated admin credentials:
-
-```bash
-gh codespace ssh -- cat .devcontainer/admin.json
-```
-
-Then open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
-
-| Field | Value |
-|---|---|
-| Host | `localhost` |
-| Port | `4000` |
-| Email | from `.devcontainer/admin.json` (printed by the `gh codespace ssh` command above) |
-| Password | from `.devcontainer/admin.json` (printed by the `gh codespace ssh` command above) |
+</details>
 
 ## Adding Documents
 
@@ -100,14 +112,22 @@ Add documents anywhere in the project root. They become resources in the knowled
 
 `semiont start` selects an inference config with the `--config` flag. Configs live in `.semiont/semiontconfig/`:
 
-- **`ollama-gemma`** (default for `semiont start`) — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
+- **`ollama-gemma`** — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
 - **`anthropic`** (default for Codespaces) — cloud inference via the Anthropic API. Requires `ANTHROPIC_API_KEY`.
+
+The choice is sticky per knowledge base: a successful `semiont start --config <name>` is remembered, so later bare `semiont start` runs reuse it (the banner says so, and `--config` always overrides). Without a recorded preference, the default is `ollama-gemma`.
 
 ```bash
 # Use Anthropic cloud inference locally
 export ANTHROPIC_API_KEY=<your-api-key>
 semiont start --config anthropic
 semiont useradd --email admin@example.com --password password --admin
+```
+
+Rather than exporting the key every session, you can register where it comes from once — the launcher stores a pointer, never the value, and reads it fresh (with your password manager's approval prompt) on each start:
+
+```bash
+semiont secret set ANTHROPIC_API_KEY
 ```
 
 ```bash
