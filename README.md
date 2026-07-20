@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/github/license/The-AI-Alliance/semiont-template-kb)](https://github.com/The-AI-Alliance/semiont-template-kb/blob/main/LICENSE)
 [![Use this template](https://img.shields.io/badge/use%20this-template-2ea44f?logo=github)](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance)
 
-A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge base. Clone this repo, add your documents, and run the start script to get a fully functional semantic wiki backed by AI-powered annotation, linking, and generation.
+A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge base. Clone this repo, add your documents, and run `semiont start` to get a fully functional semantic wiki backed by AI-powered annotation, linking, and generation.
 
 Pick one path — Local or Codespaces — and follow it end to end.
 
@@ -61,7 +61,7 @@ The command prints the new codespace's name. Subsequent `gh codespace` commands 
 
 ### Start the stack
 
-A Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images. First-time setup takes a few minutes (image and model pulls). On every start, the configuration generates fresh admin credentials and saves them to `.devcontainer/admin.json`.
+A Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images. First-time setup takes a few minutes (image and model pulls). Setup generates admin credentials once, at creation, into `.devcontainer/admin.json` — and prints them on every start.
 
 ### Browse the knowledge base
 
@@ -142,8 +142,7 @@ See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs
 .semiont/
 ├── config                        # Project name and settings
 ├── compose/                      # Docker Compose file for the stack
-├── semiontconfig/                # Inference config variants (.toml)
-└── scripts/                      # Stack startup script
+└── semiontconfig/                # Inference config variants (.toml)
 ```
 
 As you work in the knowledge base, the backend writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The backend container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.
