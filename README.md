@@ -30,6 +30,12 @@ semiont useradd --email admin@example.com --password password --admin
 
 This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
 
+> **You don't need this template to create a KB.** `semiont init` births one
+> anywhere — identity, config (built interactively or copied from here with
+> `--from-template`), and Codespaces support (`--devcontainer`). This
+> template remains the zero-install path: create a repo from it in the
+> browser and open a Codespace, no local tooling required.
+
 ### Browse the knowledge base
 
 The Semiont browser starts with the stack. Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
