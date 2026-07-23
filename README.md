@@ -25,7 +25,6 @@ No npm or Node.js installation required — everything runs in containers.
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
 semiont start
-semiont useradd --email admin@example.com --password password --admin
 ```
 
 This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
@@ -38,7 +37,13 @@ This pulls the published Semiont images and starts everything — the API server
 
 ### Browse the knowledge base
 
-The Semiont browser starts with the stack. Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
+The Semiont browser starts with the stack. Create the admin user you'll sign in with:
+
+```bash
+semiont useradd --email admin@example.com --password password --admin
+```
+
+Then open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
@@ -129,7 +134,6 @@ The choice is sticky per knowledge base: a successful `semiont start --config <n
 # Use Anthropic cloud inference locally
 export ANTHROPIC_API_KEY=<your-api-key>
 semiont start --config anthropic
-semiont useradd --email admin@example.com --password password --admin
 ```
 
 Rather than exporting the key every session, you can register where it comes from once — the launcher stores a pointer, never the value, and reads it fresh (with your password manager's approval prompt) on each start:
