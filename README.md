@@ -37,10 +37,10 @@ This pulls the published Semiont images and starts everything — the API server
 
 ### Browse the knowledge base
 
-The Semiont browser starts with the stack. Create the admin user you'll sign in with:
+The Semiont browser starts with the stack. Create the admin user you'll sign in with — it prompts for the password (never pass one as an argument; `--generate-password` makes a random one instead):
 
 ```bash
-semiont useradd --email admin@example.com --password password --admin
+semiont useradd --email admin@example.com --admin
 ```
 
 Then open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
@@ -50,7 +50,7 @@ Then open **http://localhost:3000** and add your knowledge base in the **Knowled
 | Host | `localhost` |
 | Port | `4000` |
 | Email | the email you passed to `semiont useradd` |
-| Password | the password you passed to `semiont useradd` |
+| Password | the password you set when `semiont useradd` prompted (or the one it generated) |
 
 ## Quick Start: Codespaces
 
@@ -66,9 +66,15 @@ For a KB you intend to keep, **[use this template](https://github.com/new?templa
 semiont start --runtime codespace --repo The-AI-Alliance/semiont-template-kb
 ```
 
-One command does the whole thing: it checks your `gh` auth, scope, and the API-key secret up front, creates the codespace on a premium machine (or resumes the one you already have — one per repo), waits for the stack to actually answer, forwards the KB to your machine, and prints the auto-generated admin credentials. First-time setup takes a few minutes: the Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images and models.
+One command does the whole thing: it checks your `gh` auth, scope, and the API-key secret up front, creates the codespace on a premium machine (or resumes the one you already have — one per repo), waits for the stack to actually answer, and forwards the KB to your machine. First-time setup takes a few minutes: the Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images and models.
 
-The KB lands on **http://localhost:4000** — or the next free port, which the launcher prints. Run `semiont status` any time for the codespace's state, health, and credentials.
+The KB lands on **http://localhost:4000** — or the next free port, which the launcher prints. Run `semiont status` any time for the codespace's state and health.
+
+No account exists until you make one — same as a local stack (it prompts for the password):
+
+```bash
+semiont useradd --repo The-AI-Alliance/semiont-template-kb --email you@example.com --admin
+```
 
 ### Browse the knowledge base
 
@@ -84,8 +90,8 @@ Open **http://localhost:3000** and add your knowledge base in the **Knowledge Ba
 |---|---|
 | Host | `localhost` |
 | Port | the KB port the launcher printed (`4000` unless it was taken) |
-| Email | from the credentials the launcher printed (`semiont status` re-prints them) |
-| Password | likewise |
+| Email | the email you passed to `semiont useradd` |
+| Password | the password you set when `semiont useradd` prompted (or the one it generated) |
 
 Because the browser is local and each codespace KB gets its own port, you can run several KBs at once — start another with `--repo <owner>/<other-kb>` and add it to the same panel.
 
@@ -102,12 +108,14 @@ semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the
 ```bash
 gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
 gh codespace ports forward 3000:3000 4000:4000   # leave running
-gh codespace ssh -- cat '/workspaces/*/.devcontainer/admin.json' # in another terminal
-#   (ssh lands in /home/vscode, not the workspace — hence the absolute,
-#    quoted path: the quotes keep your shell from expanding it locally)
+
+# In another terminal, create the first admin (nothing creates one for you).
+# --generate-password prints a random password once — there is no --password flag:
+gh codespace ssh -- 'cd /workspaces/* && docker compose -f .semiont/compose/backend.yml \
+  exec -T backend semiont-useradd --email you@example.com --generate-password --admin'
 ```
 
-This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in with those credentials. Setup generates the admin credentials once, at creation, into `.devcontainer/admin.json` — and prints them on every start.
+This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in as the admin you just created.
 
 If `gh` rejects the forward with `must have admin rights to Repository`, your `gh` install lacks the codespace OAuth scope. Grant it once and re-run:
 
