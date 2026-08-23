@@ -1,0 +1,85 @@
+# Shared CI for every semiont KB repo.
+#
+# This is a REUSABLE workflow: KB repos don't copy it, they call it —
+#
+#   jobs:
+#     ci:
+#       uses: The-AI-Alliance/semiont-template-kb/.github/workflows/kb-ci.yml@main
+#
+# so the logic lives here alone and a change to it needs no fleet sync. Each
+# job self-detects what the calling repo contains and passes cleanly when
+# there is nothing of that kind to check — the template has no TypeScript, the
+# forks do, and both call this same file.
+#
+# NOTE: a called job reports its check as "<caller-job-id> / <job-name>", so
+# the contexts a ruleset must require are e.g. "ci / shellcheck", NOT
+# "shellcheck". Confirm against a real run before editing any ruleset.
+name: kb-ci
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ludeeus/action-shellcheck@2.0.0
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          if [ -f tsconfig.json ] && [ -f package-lock.json ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=no" >> "$GITHUB_OUTPUT"
+            echo "No tsconfig.json + package-lock.json — nothing to typecheck."
+          fi
+      - if: steps.detect.outputs.run == 'yes'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      # `npm ci` installs the LOCKED dependency set — the same one the skills
+      # resolve at runtime. Typechecking against `@latest` instead would report
+      # drift the repo has not actually adopted yet.
+      - if: steps.detect.outputs.run == 'yes'
+        run: npm ci --no-audit --no-fund
+      - if: steps.detect.outputs.run == 'yes'
+        run: npx tsc --noEmit
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: a secret scan that only sees the tip misses anything
+      # committed and later removed, which is most of what matters.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+            detect --source=/repo --redact --no-banner
+      - id: detect
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=no" >> "$GITHUB_OUTPUT"
+            echo "No package-lock.json — no dependency tree to audit."
+          fi
+      - if: steps.detect.outputs.run == 'yes'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - if: steps.detect.outputs.run == 'yes'
+        run: npm audit --audit-level=high
