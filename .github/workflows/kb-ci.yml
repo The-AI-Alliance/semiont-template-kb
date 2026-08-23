@@ -27,14 +27,14 @@ jobs:
     name: shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ludeeus/action-shellcheck@2.0.0
 
   typecheck:
     name: typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: detect
         run: |
           if [ -f tsconfig.json ] && [ -f package-lock.json ]; then
@@ -44,7 +44,7 @@ jobs:
             echo "No tsconfig.json + package-lock.json — nothing to typecheck."
           fi
       - if: steps.detect.outputs.run == 'yes'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -70,7 +70,7 @@ jobs:
       # Scoping matters because a KB's history is mostly corpus, not code —
       # eu-ode is 112 MB of public consultation documents against ~220 KB for
       # a code-only repo, and rescanning all of it per PR iteration is waste.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # PRs need enough depth for the origin/main merge-base to exist;
           # 0 (full) on push, bounded on PR.
@@ -97,7 +97,7 @@ jobs:
             echo "No package-lock.json — no dependency tree to audit."
           fi
       - if: steps.detect.outputs.run == 'yes'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
       - if: steps.detect.outputs.run == 'yes'
