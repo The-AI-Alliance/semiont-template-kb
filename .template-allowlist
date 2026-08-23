@@ -5,6 +5,7 @@
 .github/dependabot.yml
 .github/scripts/check-clean-template.sh
 .github/workflows/clean-template.yml
+.github/workflows/kb-ci.yml
 .github/workflows/lint.yml
 .github/workflows/template-init.yml
 .gitignore
