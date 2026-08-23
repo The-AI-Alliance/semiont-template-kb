@@ -4,6 +4,7 @@
 .devcontainer/post-start.sh
 .github/dependabot.yml
 .github/scripts/check-clean-template.sh
+.github/workflows/ci.yml
 .github/workflows/clean-template.yml
 .github/workflows/kb-ci.yml
 .github/workflows/lint.yml
