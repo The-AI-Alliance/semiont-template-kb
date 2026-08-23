@@ -60,15 +60,34 @@ jobs:
     name: security
     runs-on: ubuntu-latest
     steps:
-      # Full history: a secret scan that only sees the tip misses anything
-      # committed and later removed, which is most of what matters.
+      # gitleaks has no result cache: every run rescans whatever range it is
+      # given, so the range is the only lever. Full history on a push to main,
+      # the PR's own commits on a pull request — two different questions:
+      #
+      #   push: was a secret EVER committed here (including one since removed)?
+      #   PR:   does THIS change add one?
+      #
+      # Scoping matters because a KB's history is mostly corpus, not code —
+      # eu-ode is 112 MB of public consultation documents against ~220 KB for
+      # a code-only repo, and rescanning all of it per PR iteration is waste.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # PRs need enough depth for the origin/main merge-base to exist;
+          # 0 (full) on push, bounded on PR.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 50 || 0 }}
       - name: Secret scan
         run: |
-          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
-            detect --source=/repo --redact --no-banner
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=50 origin "${{ github.base_ref }}" || true
+            RANGE="origin/${{ github.base_ref }}..HEAD"
+            echo "Scanning PR commits: $RANGE"
+            docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+              detect --source=/repo --redact --no-banner --log-opts="$RANGE"
+          else
+            echo "Scanning full history"
+            docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+              detect --source=/repo --redact --no-banner
+          fi
       - id: detect
         run: |
           if [ -f package-lock.json ]; then
