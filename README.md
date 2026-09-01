@@ -14,7 +14,7 @@ Pick one path — Local or Codespaces — and follow it end to end.
 
 - A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/)
 - An inference provider: [Ollama](https://ollama.com/) for fully local inference, or an [Anthropic](https://www.anthropic.com/) API key for cloud inference. See [Inference Configuration](#inference-configuration) for details.
-- [Git](https://git-scm.com/) — for managing your documents and committing the event streams that the backend stages
+- [Git](https://git-scm.com/) — for managing your documents and committing the event streams that the Archivist stages
 - The [Semiont launcher](https://github.com/The-AI-Alliance/semiont/tree/main/apps/launcher) — a single static binary: `brew install the-ai-alliance/semiont/semiont`
 
 No npm or Node.js installation required — everything runs in containers.
@@ -27,7 +27,7 @@ cd my-kb
 semiont start
 ```
 
-This pulls the published Semiont images and starts everything — the API server, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
+This pulls the published Semiont images and starts everything — the gateway, archivist, librarian, worker, smelter, weaver, and the Semiont browser — plus PostgreSQL, Neo4j, Qdrant, and Ollama. Nothing is built locally. The launcher auto-detects your container runtime. Follow logs with `semiont logs`, check health with `semiont status`, and stop the stack with `semiont stop`.
 
 > **You don't need this template to create a KB.** `semiont init` births one
 > anywhere — identity, config (built interactively or copied from here with
@@ -58,7 +58,7 @@ For a KB you intend to keep, **[use this template](https://github.com/new?templa
 
 **Prerequisites:** the [Semiont launcher](https://github.com/The-AI-Alliance/semiont/tree/main/apps/launcher) (`brew install the-ai-alliance/semiont/semiont`) and the [GitHub CLI (`gh`)](https://cli.github.com/), signed in with `gh auth login`.
 
-> **Before creating:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
+> **Before creating:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the stack comes up but inference is non-functional until you add the secret and rebuild the container.
 
 ### Start the KB in the cloud
 
@@ -81,7 +81,7 @@ semiont useradd --repo The-AI-Alliance/semiont-template-kb --email you@example.c
 The browser runs **locally** and connects to any number of knowledge bases — cloud or local:
 
 ```bash
-semiont start --service frontend
+semiont start --service browser
 ```
 
 Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
@@ -112,7 +112,7 @@ gh codespace ports forward 3000:3000 4000:4000   # leave running
 # In another terminal, create the first admin (nothing creates one for you).
 # --generate-password prints a random password once — there is no --password flag:
 gh codespace ssh -- 'cd /workspaces/* && docker compose -f .semiont/compose/backend.yml \
-  exec -T backend semiont-useradd --email you@example.com --generate-password --admin'
+  exec -T gateway semiont-useradd --email you@example.com --generate-password --admin'
 ```
 
 This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in as the admin you just created.
@@ -159,7 +159,7 @@ To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See 
 
 ## Container Images
 
-The stack runs published, attested images from GitHub Container Registry — `semiont-backend`, `semiont-worker`, `semiont-smelter`, `semiont-weaver`, and `semiont-frontend`. Nothing is built locally; a fresh start is a pull, not a compile.
+The stack runs published, attested images from GitHub Container Registry — `semiont-gateway`, `semiont-archivist`, `semiont-librarian`, `semiont-worker`, `semiont-smelter`, `semiont-weaver`, and `semiont-browser`. Nothing is built locally; a fresh start is a pull, not a compile.
 
 `SEMIONT_VERSION` selects the image version (`latest` by default):
 
@@ -170,7 +170,7 @@ SEMIONT_VERSION=0.5.12 semiont start
 Every image is vulnerability- and license-scanned before publish, and ships SLSA build-provenance and SBOM attestations you can verify before running anything:
 
 ```bash
-gh attestation verify oci://ghcr.io/the-ai-alliance/semiont-backend:latest --owner The-AI-Alliance
+gh attestation verify oci://ghcr.io/the-ai-alliance/semiont-gateway:latest --owner The-AI-Alliance
 ```
 
 See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/IMAGES.md) for the full inventory and verification details.
@@ -185,7 +185,7 @@ See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs
 └── semiontconfig/                # Inference config variants (.toml)
 ```
 
-As you work in the knowledge base, the backend writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The backend container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.
+As you work in the knowledge base, the Archivist writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The Archivist container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.
 
 ## Documentation
 

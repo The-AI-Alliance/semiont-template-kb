@@ -2,7 +2,7 @@
 #
 # Guard: the template must stay a fixed set of scaffolding files.
 #
-# Running the backend in a working tree writes runtime artifacts — per-resource
+# Running the stack in a working tree writes runtime artifacts — per-resource
 # event streams under .semiont/events/, demo output, e2e seeds — which can then
 # get committed by accident (this has happened). This check rejects any tracked
 # file not in .template-allowlist, and flags any allowlisted file that has gone
