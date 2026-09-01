@@ -1,5 +1,6 @@
 .plans
 .devcontainer/.env
+.devcontainer/.staged-config.toml
 .cache/
 node_modules
 
