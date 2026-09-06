@@ -144,7 +144,7 @@ KB_OAUTH=$(toml_value site oauthAllowedDomains .semiont/config)
     echo ""
     echo "[environments.${KB_ENV}.archivist]"
     echo "host = \"archivist\""
-    echo "port = 9093"
+    echo "port = 24103"
   fi
 } > "$STAGED_CONFIG"
 
