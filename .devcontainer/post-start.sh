@@ -204,7 +204,9 @@ if $COMPOSE_OK; then
 Semiont stack is up.
   Semiont Browser → port 3000  (forwarded by Codespaces)
   Gateway API     → port 4000  (forwarded by Codespaces)
-  Jaeger UI       → port 16686
+  Jaeger UI       → port 16686  (traces)
+  Prometheus      → port 9090   (metrics; scrapes the collector)
+  Collector       → port 24110  (raw /metrics readout)
   Neo4j Browser   → port 7474   (login: neo4j / localpass)
 
 To use it from your machine, forward both ports:
