@@ -10,6 +10,8 @@
 .github/workflows/template-init.yml
 .gitignore
 .semiont/compose/backend.yml
+.semiont/compose/collector.yaml
+.semiont/compose/prometheus.yml
 .semiont/config
 .semiont/events/__system__/events-000001.jsonl
 .semiont/semiontconfig/anthropic.toml
