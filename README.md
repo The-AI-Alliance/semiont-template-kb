@@ -40,7 +40,7 @@ This pulls the published Semiont images and starts everything — the gateway, a
 The Semiont browser starts with the stack. Create the admin user you'll sign in with — it prompts for the password (never pass one as an argument; `--generate-password` makes a random one instead):
 
 ```bash
-semiont useradd --email admin@example.com --admin
+semiont useradd --email admin@example.com
 ```
 
 Then open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
@@ -73,7 +73,7 @@ The KB lands on **http://localhost:4000** — or the next free port, which the l
 No account exists until you make one — same as a local stack (it prompts for the password):
 
 ```bash
-semiont useradd --repo The-AI-Alliance/semiont-template-kb --email you@example.com --admin
+semiont useradd --repo The-AI-Alliance/semiont-template-kb --email you@example.com
 ```
 
 ### Browse the knowledge base
@@ -111,8 +111,8 @@ gh codespace ports forward 3000:3000 4000:4000   # leave running
 
 # In another terminal, create the first admin (nothing creates one for you).
 # --generate-password prints a random password once — there is no --password flag:
-gh codespace ssh -- 'cd /workspaces/* && docker compose -f .semiont/compose/backend.yml \
-  exec -T gateway semiont-useradd --email you@example.com --generate-password --admin'
+semiont useradd --repo The-AI-Alliance/semiont-template-kb \
+  --email you@example.com --generate-password
 ```
 
 This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in as the admin you just created.
