@@ -215,11 +215,10 @@ services:
       NEO4J_HOST: neo4j
       QDRANT_HOST: qdrant
       OLLAMA_HOST: ollama
-      # Required by the gateway: it refuses to boot without one (requireJwtSecret
-      # in apps/gateway/src/auth/jwt.ts). Guarded like the worker secret so a
-      # missing value fails with a fix-it instead of a crash-loop.
-      # post-create.sh generates it per codespace; `semiont start` injects it on
-      # the local path. The sidecars do NOT need it — they authenticate to the
+      # Required by the gateway: it refuses to boot without one
+      # (requireJwtSecret in apps/gateway/src/auth/jwt.ts). Guarded so a missing
+      # value fails with a fix-it instead of a crash-loop. post-create.sh
+      # generates it per codespace; the sidecars do not need it.
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set (min 32 chars), e.g. export JWT_SECRET=$$(openssl rand -hex 32)}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
@@ -346,6 +345,29 @@ services:
     ports:
       - "24102:24102"
     mem_limit: 3g
+    volumes:
+      - ${SEMIONT_CONFIG:-../semiontconfig/ollama-gemma.toml}:/home/semiont/.semiontconfig:ro
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GATEWAY_HOST: gateway
+      OLLAMA_HOST: ollama
+      QDRANT_HOST: qdrant
+      NEO4J_HOST: neo4j
+      POSTGRES_HOST: postgres
+      NATS_HOST: nats
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  # Routes work to the worker pool. 2G and port 24105, as the launcher runs it.
+  dispatcher:
+    container_name: semiont-dispatcher
+    restart: on-failure
+    image: ghcr.io/the-ai-alliance/semiont-dispatcher:${SEMIONT_VERSION:-latest}
+    ports:
+      - "24105:24105"
+    mem_limit: 2g
     volumes:
       - ${SEMIONT_CONFIG:-../semiontconfig/ollama-gemma.toml}:/home/semiont/.semiontconfig:ro
     environment:
