@@ -1,5 +1,4 @@
 .devcontainer/devcontainer.json
-.devcontainer/docker-compose.codespaces.yml
 .devcontainer/post-create.sh
 .devcontainer/post-start.sh
 .github/dependabot.yml
