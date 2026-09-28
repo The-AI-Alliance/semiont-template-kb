@@ -49,8 +49,8 @@ Then open **http://localhost:3000** and add your knowledge base in the **Knowled
 |---|---|
 | Host | `localhost` |
 | Port | `4000` |
-| Email | the email you passed to `semiont useradd` |
-| Password | the password you set when `semiont useradd` prompted (or the one it generated) |
+
+**Connect** sends you to Keycloak: sign in with the email and password from `semiont useradd`. The first sign-in asks for your name.
 
 ## Quick Start: Codespaces
 
@@ -66,56 +66,57 @@ For a KB you intend to keep, **[use this template](https://github.com/new?templa
 semiont start --runtime codespace --repo The-AI-Alliance/semiont-template-kb
 ```
 
-One command does the whole thing: it checks your `gh` auth, scope, and the API-key secret up front, creates the codespace on a premium machine (or resumes the one you already have — one per repo), waits for the stack to actually answer, and forwards the KB to your machine. First-time setup takes a few minutes: the Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images and models.
+One command does the whole thing: it checks your `gh` auth, scope, and the API-key secret up front, creates the codespace on a premium machine (or resumes the one you already have — one per repo), waits for the stack to actually answer, forwards the KB to your machine, and starts the browser locally when this machine has a container runtime. First-time setup takes a few minutes: the Codespace brings the stack up via `docker compose` with the anthropic config, pulling the published images and models.
 
 The KB lands on **http://localhost:4000** — or the next free port, which the launcher prints. Run `semiont status` any time for the codespace's state and health.
 
-No account exists until you make one — same as a local stack (it prompts for the password):
+### Sign in
+
+Signing in needs the codespace's Keycloak, which the launcher does not forward. Forward it yourself and leave it running; the start summary names the codespace, and so does `gh codespace list`:
 
 ```bash
-semiont useradd --repo The-AI-Alliance/semiont-template-kb --email you@example.com
+gh codespace ports forward 8080:8080 -c <codespace>
+```
+
+Every codespace KB's Keycloak is on 8080, so this machine signs into one codespace KB at a time, and not while a local stack holds 8080.
+
+No account exists until you make one, and `semiont useradd` cannot reach a codespace KB. Create the first account with Keycloak's own admin tool inside the codespace; it prompts for the password:
+
+```bash
+gh codespace ssh -c <codespace> -- -t "docker exec -it semiont-keycloak bash -c 'K=/opt/keycloak/bin/kcadm.sh; \$K config credentials --server http://localhost:8080 --realm master --user admin --password \"\$KC_BOOTSTRAP_ADMIN_PASSWORD\" && \$K create users -r semiont -s username=<email> -s email=<email> -s emailVerified=true -s enabled=true && \$K set-password -r semiont --username <email>'"
 ```
 
 ### Browse the knowledge base
 
-The browser runs **locally** and connects to any number of knowledge bases — cloud or local:
-
-```bash
-semiont start --service browser
-```
-
-Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
+The browser runs **locally** and connects to any number of knowledge bases — cloud or local. Open **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
 | Host | `localhost` |
 | Port | the KB port the launcher printed (`4000` unless it was taken) |
-| Email | the email you passed to `semiont useradd` |
-| Password | the password you set when `semiont useradd` prompted (or the one it generated) |
 
-Because the browser is local and each codespace KB gets its own port, you can run several KBs at once — start another with `--repo <owner>/<other-kb>` and add it to the same panel.
+**Connect** sends you to Keycloak: sign in with the email and password you just set. The first sign-in asks for your name.
+
+Each codespace KB gets its own port, so several can sit in the panel at once — start another with `--repo <owner>/<other-kb>` and add it — but this machine signs into one at a time.
 
 ### Stop it
 
 ```bash
-semiont stop --repo The-AI-Alliance/semiont-template-kb            # halt billing; state and credentials persist
-semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the codespace
+semiont stop --repo The-AI-Alliance/semiont-template-kb            # stop compute; storage bills until GitHub deletes it, 30 days on
+semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the codespace now
 ```
+
+`semiont stop` leaves your 8080 forward running. A codespace whose setup failed during `start` is unknown to `semiont stop`; delete it with `gh codespace delete -c <codespace>`.
 
 <details>
 <summary>Without the launcher: the raw <code>gh</code> recipe</summary>
 
 ```bash
 gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
-gh codespace ports forward 3000:3000 4000:4000 8080:8080   # leave running
-
-# In another terminal, create the first admin (nothing creates one for you).
-# --generate-password prints a random password once — there is no --password flag:
-semiont useradd --repo The-AI-Alliance/semiont-template-kb \
-  --email you@example.com --generate-password
+gh codespace ports forward 3000:3000 4000:4000 8080:8080 -c <codespace>   # leave running
 ```
 
-This forwards the codespace's own browser as well, so you open **http://localhost:3000** and sign in as the admin you just created.
+In another terminal, create the first account with the Keycloak command under **Sign in**. This forwards the codespace's own browser as well: open **http://localhost:3000**, add Host `localhost`, Port `4000`, and **Connect**.
 
 If `gh` rejects the forward with `must have admin rights to Repository`, your `gh` install lacks the codespace OAuth scope. Grant it once and re-run:
 
