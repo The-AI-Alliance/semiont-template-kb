@@ -1,6 +1,7 @@
 .plans
 .devcontainer/.env
 .devcontainer/.staged-config.toml
+.devcontainer/.staged-realm.json
 .cache/
 node_modules
 
