@@ -107,7 +107,7 @@ semiont stop --repo The-AI-Alliance/semiont-template-kb --delete   # destroy the
 
 ```bash
 gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
-gh codespace ports forward 3000:3000 4000:4000   # leave running
+gh codespace ports forward 3000:3000 4000:4000 8080:8080   # leave running
 
 # In another terminal, create the first admin (nothing creates one for you).
 # --generate-password prints a random password once — there is no --password flag:
