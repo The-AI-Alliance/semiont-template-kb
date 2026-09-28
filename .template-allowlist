@@ -11,6 +11,8 @@
 .gitignore
 .semiont/compose/backend.yml
 .semiont/compose/collector.yaml
+.semiont/compose/keycloak-realm.json
+.semiont/compose/postgres-init-keycloak.sql
 .semiont/compose/prometheus.yml
 .semiont/config
 .semiont/events/__system__/events-000001.jsonl
