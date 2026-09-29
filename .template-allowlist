@@ -1,5 +1,4 @@
 .devcontainer/devcontainer.json
-.devcontainer/post-create.sh
 .devcontainer/post-start.sh
 .github/dependabot.yml
 .github/scripts/check-clean-template.sh
@@ -8,11 +7,6 @@
 .github/workflows/kb-ci.yml
 .github/workflows/template-init.yml
 .gitignore
-.semiont/compose/backend.yml
-.semiont/compose/collector.yaml
-.semiont/compose/keycloak-realm.json
-.semiont/compose/postgres-init-keycloak.sql
-.semiont/compose/prometheus.yml
 .semiont/config
 .semiont/events/__system__/events-000001.jsonl
 .semiont/semiontconfig/anthropic.toml
