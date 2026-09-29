@@ -1,8 +1,4 @@
 .plans
-.devcontainer/.env
-.devcontainer/.staged-config.toml
-.devcontainer/.staged-realm.json
-.devcontainer/.staged-gateway.json
 .cache/
 node_modules
 
