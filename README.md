@@ -146,7 +146,7 @@ semiont start --config anthropic
 Rather than exporting the key every session, you can register where it comes from once — the launcher stores a pointer, never the value, and reads it fresh (with your password manager's approval prompt) on each start:
 
 ```bash
-semiont secret set ANTHROPIC_API_KEY
+semiont settings secret set ANTHROPIC_API_KEY
 ```
 
 ```bash
