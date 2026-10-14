@@ -154,7 +154,7 @@ semiont settings secret set ANTHROPIC_API_KEY
 semiont start --list-configs
 ```
 
-To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
+To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) for the full reference.
 
 ## Container Images
 
@@ -172,7 +172,7 @@ Every image is vulnerability- and license-scanned before publish, and ships SLSA
 gh attestation verify oci://ghcr.io/the-ai-alliance/semiont-gateway:latest --owner The-AI-Alliance
 ```
 
-See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/IMAGES.md) for the full inventory and verification details.
+See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/IMAGES.md) for the full inventory and verification details.
 
 ## What's Inside
 
@@ -189,9 +189,9 @@ As you work in the knowledge base, the Archivist writes event streams (annotatio
 
 See the [Semiont repository](https://github.com/The-AI-Alliance/semiont) for full documentation:
 
-- [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) — inference providers, vector search, graph database settings
-- [Project Layout](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/PROJECT-LAYOUT.md) — how `.semiont/` and resource files are organized
-- [Local Semiont](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/LOCAL-SEMIONT.md) — alternative setup paths including the Semiont CLI
+- [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) — inference providers, vector search, graph database settings
+- [Project Layout](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/PROJECT-LAYOUT.md) — how `.semiont/` and resource files are organized
+- [Local Semiont](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/LOCAL-SEMIONT.md) — alternative setup paths including the Semiont CLI
 
 ## License
 
