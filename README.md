@@ -130,7 +130,7 @@ Add documents anywhere in the project root. They become resources in the knowled
 
 ## Inference Configuration
 
-`semiont start` selects an inference config with the `--config` flag. Configs live in `.semiont/semiontconfig/`:
+`semiont start` chooses the models that serve the knowledge base with the `--config` flag. Each choice is an Inference document in `.semiont/stack/inference/`:
 
 - **`ollama-gemma`** — fully local inference via [Ollama](https://ollama.com/) with Gemma 4 models. No API key needed. On first run, Ollama pulls `gemma4:26b` (17 GB), `gemma4:e2b` (7.2 GB), and `nomic-embed-text` (274 MB) — roughly 24 GB total, downloaded once.
 - **`anthropic`** (default for Codespaces) — cloud inference via the Anthropic API. Requires `ANTHROPIC_API_KEY`.
@@ -154,16 +154,17 @@ semiont settings secret set ANTHROPIC_API_KEY
 semiont start --list-configs
 ```
 
-To create your own config, add a `.toml` file to `.semiont/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) for the full reference.
+To add a choice of your own, add an Inference document to `.semiont/stack/inference/`. The rest of the stack (its images, their memory, the graph, the vector store and the issuer) is described by the other documents in `.semiont/stack/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) for the full reference.
 
 ## Container Images
 
 The stack runs published, attested images from GitHub Container Registry — `semiont-gateway`, `semiont-archivist`, `semiont-librarian`, `semiont-worker`, `semiont-smelter`, `semiont-weaver`, and `semiont-browser`. Nothing is built locally; a fresh start is a pull, not a compile.
 
-`SEMIONT_VERSION` selects the image version (`latest` by default):
+The documents in `.semiont/stack/` name each image, at `latest` as this template has them. To run a release, name its tag in each `image`:
 
-```bash
-SEMIONT_VERSION=0.5.12 semiont start
+```yaml
+  gateway:
+    image: ghcr.io/the-ai-alliance/semiont-gateway:0.5.12
 ```
 
 Every image is vulnerability- and license-scanned before publish, and ships SLSA build-provenance and SBOM attestations you can verify before running anything:
@@ -179,8 +180,13 @@ See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs
 ```
 .devcontainer/                    # GitHub Codespaces configuration
 .semiont/
-├── config                        # Project name and settings
-└── semiontconfig/                # Inference config variants (.toml)
+├── config.yaml                   # The knowledge base's name and did:web identity
+└── stack/                        # The stack's documents: what runs, and from which images
+    ├── knowledge-base.yaml       # Gateway, dispatcher, Archivist, broker, issuer
+    ├── index.yaml                # Graph, vectors, embedding, Librarian, Smelter, Weaver
+    ├── issuer.yaml               # The Keycloak the launcher runs, and its database
+    ├── workers.yaml              # The worker
+    └── inference/                # One document per choice of models (--config)
 ```
 
 As you work in the knowledge base, the Archivist writes event streams (annotations, links, generated content) as JSONL files into `.semiont/events/` and stages them with `git add`. The Archivist container includes its own Git installation for this purpose. You are responsible for committing and pushing these staged changes — treat the knowledge base like any other Git repository.

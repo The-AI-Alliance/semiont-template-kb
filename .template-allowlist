@@ -7,10 +7,14 @@
 .github/workflows/kb-ci.yml
 .github/workflows/template-init.yml
 .gitignore
-.semiont/config
+.semiont/config.yaml
 .semiont/events/__system__/events-000001.jsonl
-.semiont/semiontconfig/anthropic.toml
-.semiont/semiontconfig/ollama-gemma.toml
+.semiont/stack/index.yaml
+.semiont/stack/inference/anthropic.yaml
+.semiont/stack/inference/ollama-gemma.yaml
+.semiont/stack/issuer.yaml
+.semiont/stack/knowledge-base.yaml
+.semiont/stack/workers.yaml
 .template-allowlist
 LICENSE
 README.md
