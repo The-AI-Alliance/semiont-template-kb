@@ -1,0 +1,12 @@
+project:
+  name: "Semiont Template Knowledge Base"
+
+git:
+  sync: true
+
+site:
+  # Permanent did:web identity for everything this KB mints (stamped into the
+  # committed event log). Names the repo, not a deployment — a committed
+  # literal, never a machine address.
+  domain: "the-ai-alliance.github.io:semiont-template-kb"
+  siteName: "Semiont Template Knowledge Base"
