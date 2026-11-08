@@ -12,9 +12,7 @@
 .semiont/stack/index.yaml
 .semiont/stack/inference/anthropic.yaml
 .semiont/stack/inference/ollama-gemma.yaml
-.semiont/stack/issuer.yaml
 .semiont/stack/knowledge-base.yaml
-.semiont/stack/workers.yaml
 .template-allowlist
 LICENSE
 README.md
