@@ -154,13 +154,13 @@ semiont settings secret set ANTHROPIC_API_KEY
 semiont start --list-configs
 ```
 
-To add a choice of your own, add an Inference document to `.semiont/stack/inference/`. The rest of the stack (its images, their memory, the graph, the vector store and the issuer) is described by the other documents in `.semiont/stack/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) for the full reference.
+To add a choice of your own, add an Inference document to `.semiont/stack/inference/`. The rest of the knowledge base's stack (its images, their memory, the graph and the vector store) is described by the other documents in `.semiont/stack/`. The issuer, the worker and the Browser serve every knowledge base on the machine, so their documents are the launcher's: `semiont settings browser|worker|issuer --path` prints where each is. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/operator/administration/CONFIGURATION.md) for the full reference.
 
 ## Container Images
 
 The stack runs published, attested images from GitHub Container Registry — `semiont-gateway`, `semiont-archivist`, `semiont-librarian`, `semiont-worker`, `semiont-smelter`, `semiont-weaver`, and `semiont-browser`. Nothing is built locally; a fresh start is a pull, not a compile.
 
-The documents in `.semiont/stack/` name each image, at `latest` as this template has them. To run a release, name its tag in each `image`:
+The documents in `.semiont/stack/` name each of the knowledge base's images, at `latest` as this template has them; the worker's and the Browser's are in the machine's documents. To run a release, name its tag in each `image`:
 
 ```yaml
   gateway:
@@ -182,10 +182,8 @@ See [Container Images](https://github.com/The-AI-Alliance/semiont/blob/main/docs
 .semiont/
 ├── config.yaml                   # The knowledge base's name and did:web identity
 └── stack/                        # The stack's documents: what runs, and from which images
-    ├── knowledge-base.yaml       # Gateway, dispatcher, Archivist, broker, issuer
+    ├── knowledge-base.yaml       # Gateway, dispatcher, Archivist, broker, and the issuer it trusts
     ├── index.yaml                # Graph, vectors, embedding, Librarian, Smelter, Weaver
-    ├── issuer.yaml               # The Keycloak the launcher runs, and its database
-    ├── workers.yaml              # The worker
     └── inference/                # One document per choice of models (--config)
 ```
 
